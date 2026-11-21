@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/legacy.dart';
 
 import 'app.dart';
+import 'core/models/app_settings.dart';
 import 'core/subscription/subscription_client.dart';
 import 'platform/device_info.dart';
 import 'platform/system_proxy.dart';
@@ -10,6 +13,7 @@ import 'services/connection_controller.dart';
 import 'services/core_manager.dart';
 import 'services/engine_manager.dart';
 import 'services/hwid_service.dart';
+import 'services/ip_info_controller.dart';
 import 'services/log_service.dart';
 import 'services/settings_controller.dart';
 import 'services/state_store.dart';
@@ -18,20 +22,24 @@ import 'services/subscription_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await windowManager.ensureInitialized();
 
-  const windowOptions = WindowOptions(
-    size: Size(1160, 760),
-    minimumSize: Size(900, 620),
-    center: true,
-    title: 'IVPN',
-    titleBarStyle: TitleBarStyle.hidden,
-    backgroundColor: Colors.transparent,
-  );
-  await windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-  });
+  final isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+  if (isDesktop) {
+    await windowManager.ensureInitialized();
+
+    const windowOptions = WindowOptions(
+      size: Size(1160, 760),
+      minimumSize: Size(900, 620),
+      center: true,
+      title: 'IVPN',
+      titleBarStyle: TitleBarStyle.hidden,
+      backgroundColor: Colors.transparent,
+    );
+    await windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+  }
 
   final storage = StorageService();
   await storage.init();
@@ -44,6 +52,17 @@ Future<void> main() async {
 
   final settings = SettingsController(stateStore, device);
   await settings.init();
+
+  if (Platform.isAndroid &&
+      (settings.value.mode != ConnectionMode.tun ||
+          settings.value.engine != CoreEngine.singbox ||
+          settings.value.allowLan)) {
+    await settings.patch(
+      mode: ConnectionMode.tun,
+      engine: CoreEngine.singbox,
+      allowLan: false,
+    );
+  }
 
   final hwid = HwidService(device);
   final subscriptionClient = SubscriptionClient();
@@ -68,6 +87,7 @@ Future<void> main() async {
     subscriptions: subscriptions,
     proxy: proxy,
   );
+  final ipInfo = IpInfoController();
 
   await proxy.cleanupIfOurs({
     settings.value.mixedPort,
@@ -89,6 +109,7 @@ Future<void> main() async {
           value: subscriptions,
         ),
         ChangeNotifierProvider<ConnectionController>.value(value: connection),
+        ChangeNotifierProvider<IpInfoController>.value(value: ipInfo),
       ],
       child: const IvpnApp(),
     ),

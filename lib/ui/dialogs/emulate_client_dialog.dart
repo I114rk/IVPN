@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/models/client_emulation.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/settings_controller.dart';
 
 class EmulateClientDialog extends StatelessWidget {
@@ -31,7 +32,7 @@ class EmulateClientDialog extends StatelessWidget {
         children: [
           Icon(Icons.smart_toy_outlined, color: scheme.primary),
           const SizedBox(width: 12),
-          const Expanded(child: Text('Эмуляция клиента')),
+          Expanded(child: Text(context.tr('Эмуляция клиента'))),
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.close_rounded),
@@ -45,15 +46,18 @@ class EmulateClientDialog extends StatelessWidget {
         child: ListView(
           children: [
             Text(
-              'IVPN будет отправлять User-Agent и заголовки устройства выбранного клиента. '
-              'Это влияет на формат, который отдаёт панель Remnawave.',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: scheme.onSurfaceVariant),
+              context.tr(
+                'IVPN будет отправлять User-Agent и заголовки устройства выбранного клиента. '
+                'Это влияет на формат, который отдаёт панель Remnawave.',
+              ),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 12),
             _ClientTile(
-              name: 'Не эмулировать',
-              description: 'Стандартный User-Agent IVPN',
+              name: context.tr('Не эмулировать'),
+              description: context.tr('Стандартный User-Agent IVPN'),
               selected: current == null,
               onTap: () => Navigator.of(context).pop(''),
             ),
@@ -73,7 +77,7 @@ class EmulateClientDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Закрыть'),
+          child: Text(context.tr('Закрыть')),
         ),
       ],
     );
@@ -154,7 +158,9 @@ class _ClientTile extends StatelessWidget {
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 1),
+                                horizontal: 6,
+                                vertical: 1,
+                              ),
                               decoration: BoxDecoration(
                                 color: scheme.surfaceContainerHighest,
                                 borderRadius: BorderRadius.circular(6),
@@ -177,8 +183,9 @@ class _ClientTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: selected
-                              ? scheme.onSecondaryContainer
-                                  .withValues(alpha: 0.75)
+                              ? scheme.onSecondaryContainer.withValues(
+                                  alpha: 0.75,
+                                )
                               : scheme.onSurfaceVariant,
                         ),
                       ),
@@ -192,10 +199,12 @@ class _ClientTile extends StatelessWidget {
                             fontFamily: 'Consolas',
                             fontSize: 10.5,
                             color: selected
-                                ? scheme.onSecondaryContainer
-                                    .withValues(alpha: 0.65)
-                                : scheme.onSurfaceVariant
-                                    .withValues(alpha: 0.75),
+                                ? scheme.onSecondaryContainer.withValues(
+                                    alpha: 0.65,
+                                  )
+                                : scheme.onSurfaceVariant.withValues(
+                                    alpha: 0.75,
+                                  ),
                           ),
                         ),
                       ],
@@ -203,8 +212,11 @@ class _ClientTile extends StatelessWidget {
                   ),
                 ),
                 if (selected)
-                  Icon(Icons.check_circle_rounded,
-                      color: scheme.primary, size: 20),
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: scheme.primary,
+                    size: 20,
+                  ),
               ],
             ),
           ),

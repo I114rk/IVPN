@@ -9,10 +9,8 @@ class ElevationService {
     if (_cachedAdmin != null) return _cachedAdmin!;
     try {
       final shell32 = DynamicLibrary.open('shell32.dll');
-      final isUserAnAdmin =
-          shell32.lookupFunction<Int32 Function(), int Function()>(
-        'IsUserAnAdmin',
-      );
+      final isUserAnAdmin = shell32
+          .lookupFunction<Int32 Function(), int Function()>('IsUserAnAdmin');
       _cachedAdmin = isUserAnAdmin() != 0;
     } catch (_) {
       _cachedAdmin = false;
@@ -25,17 +23,13 @@ class ElevationService {
     try {
       final executable = Platform.resolvedExecutable;
       final escaped = executable.replaceAll('"', '`"');
-      final result = await Process.run(
-        'powershell',
-        [
-          '-NoProfile',
-          '-WindowStyle',
-          'Hidden',
-          '-Command',
-          'Start-Process -FilePath "$escaped" -Verb RunAs',
-        ],
-        runInShell: false,
-      );
+      final result = await Process.run('powershell', [
+        '-NoProfile',
+        '-WindowStyle',
+        'Hidden',
+        '-Command',
+        'Start-Process -FilePath "$escaped" -Verb RunAs',
+      ], runInShell: false);
       return result.exitCode == 0;
     } catch (_) {
       return false;

@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/models/app_settings.dart';
@@ -10,7 +12,9 @@ import '../../core/models/proxy_profile.dart';
 import '../../core/utils/byte_format.dart';
 import '../../core/utils/network_info.dart';
 import '../../platform/elevation.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/connection_controller.dart';
+import '../../services/ip_info_controller.dart';
 import '../../services/settings_controller.dart';
 import '../../services/subscription_controller.dart';
 import '../utils/ui_helpers.dart';
@@ -29,6 +33,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   Timer? _ticker;
   String? _lanIp;
+  ConnectionController? _observedConnection;
+  bool? _lastConnected;
 
   @override
   void initState() {
@@ -45,9 +51,43 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final connection = context.read<ConnectionController>();
+    if (!identical(connection, _observedConnection)) {
+      _observedConnection?.removeListener(_onConnectionChanged);
+      _observedConnection = connection;
+      _lastConnected = connection.isConnected;
+      connection.addListener(_onConnectionChanged);
+    }
+    final ipInfo = context.read<IpInfoController>();
+    if (ipInfo.updatedAt == null && !ipInfo.isLoading) {
+      unawaited(ipInfo.refresh());
+    }
+  }
+
+  void _onConnectionChanged() {
+    final connection = _observedConnection;
+    if (connection == null || connection.isConnecting) return;
+    final connected = connection.isConnected;
+    if (_lastConnected == connected) return;
+    _lastConnected = connected;
+    Future<void>.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) return context.read<IpInfoController>().refresh();
+    });
+  }
+
+  @override
   void dispose() {
     _ticker?.cancel();
+    _observedConnection?.removeListener(_onConnectionChanged);
     super.dispose();
+  }
+
+  Future<void> _copyIp(String? value) async {
+    if (value == null || value.isEmpty) return;
+    await Clipboard.setData(ClipboardData(text: value));
+    if (mounted) showAppSnack(context, context.tr('IP скопирован'));
   }
 
   Future<void> _toggle(
@@ -86,10 +126,10 @@ class _HomePageState extends State<HomePage> {
     final duplicates = subscriptions.duplicateProfileIds;
 
     final statusText = connection.isConnected
-        ? 'Защищено'
+        ? context.tr('Защищено')
         : connection.isConnecting
-        ? 'Подключение…'
-        : 'Не подключено';
+        ? context.tr('Подключение…')
+        : context.tr('Не подключено');
     final statusColor = connection.isConnected
         ? scheme.primary
         : connection.isConnecting
@@ -102,21 +142,22 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const PageHeader(
-              title: 'Обзор',
-              subtitle: 'Подключение и быстрые настройки',
+            PageHeader(
+              title: context.tr('Обзор'),
+              subtitle: context.tr('Подключение и быстрые настройки'),
             ),
             Expanded(
               child: EmptyState(
                 icon: Icons.rss_feed_rounded,
-                title: 'Нет серверов',
-                message:
-                    'Добавьте подписку Remnawave или ссылку на конфигурацию, '
-                    'чтобы начать пользоваться IVPN.',
+                title: context.tr('Нет серверов'),
+                message: context.tr(
+                  'Добавьте подписку Remnawave или ссылку на конфигурацию, '
+                  'чтобы начать пользоваться IVPN.',
+                ),
                 action: FilledButton.icon(
                   onPressed: () => widget.onNavigate(2),
                   icon: const Icon(Icons.add_rounded),
-                  label: const Text('Добавить подписку'),
+                  label: Text(context.tr('Добавить подписку')),
                 ),
               ),
             ),
@@ -131,8 +172,8 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           PageHeader(
-            title: 'Обзор',
-            subtitle: 'Подключение и быстрые настройки',
+            title: context.tr('Обзор'),
+            subtitle: context.tr('Подключение и быстрые настройки'),
             actions: [
               _MetaChip(
                 icon: settings.value.mode == ConnectionMode.tun
@@ -202,28 +243,30 @@ class _HomePageState extends State<HomePage> {
     final clients = connection.lanClients;
     final online = clients.where((client) => client.isActive).length;
     final address = _lanIp == null
-        ? 'адрес:порт'
+        ? context.tr('адрес:порт')
         : '$_lanIp:${settings.value.mixedPort}';
 
     Widget content;
     if (settings.value.mode != ConnectionMode.proxy) {
       content = Text(
-        'Прокси-порт открывается только в режиме Proxy.',
+        context.tr('Прокси-порт открывается только в режиме Proxy.'),
         style: theme.textTheme.bodySmall?.copyWith(
           color: scheme.onSurfaceVariant,
         ),
       );
     } else if (connection.engineState.type == EngineType.xray) {
       content = Text(
-        'Статистика подключений доступна только с ядром sing-box.',
+        context.tr('Статистика подключений доступна только с ядром sing-box.'),
         style: theme.textTheme.bodySmall?.copyWith(
           color: scheme.onSurfaceVariant,
         ),
       );
     } else if (clients.isEmpty) {
       content = Text(
-        'Пока никто не подключён. Укажите на устройстве в вашей сети прокси '
-        '$address.',
+        context.tr(
+          'Пока никто не подключён. Укажите на устройстве в вашей сети прокси {address}.',
+          {'address': address},
+        ),
         style: theme.textTheme.bodySmall?.copyWith(
           color: scheme.onSurfaceVariant,
         ),
@@ -253,7 +296,7 @@ class _HomePageState extends State<HomePage> {
               Icon(Icons.devices_rounded, size: 20, color: scheme.primary),
               const SizedBox(width: 10),
               Text(
-                'Устройства в локальной сети',
+                context.tr('Устройства в локальной сети'),
                 style: theme.textTheme.titleSmall,
               ),
               const SizedBox(width: 10),
@@ -266,7 +309,7 @@ class _HomePageState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  '$online онлайн',
+                  context.tr('{count} онлайн', {'count': online}),
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: online > 0
                         ? scheme.onPrimaryContainer
@@ -345,7 +388,9 @@ class _HomePageState extends State<HomePage> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        client.isActive ? 'онлайн' : 'офлайн',
+                        client.isActive
+                            ? context.tr('онлайн')
+                            : context.tr('офлайн'),
                         style: theme.textTheme.labelSmall?.copyWith(
                           fontSize: 9,
                           color: client.isActive
@@ -359,7 +404,7 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 2),
                 Text(
                   client.hosts.isEmpty
-                      ? 'Нет активных запросов'
+                      ? context.tr('Нет активных запросов')
                       : client.hosts.take(3).join(' · '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -395,8 +440,13 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 2),
               Text(
                 client.isActive
-                    ? '${client.activeConnections} соед.'
-                    : formatRelative(client.lastSeen),
+                    ? context.tr('{count} соед.', {
+                        'count': client.activeConnections,
+                      })
+                    : formatRelative(
+                        client.lastSeen,
+                        languageCode: context.languageCode,
+                      ),
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
@@ -423,6 +473,7 @@ class _HomePageState extends State<HomePage> {
         ? null
         : subscriptions.subscriptionOf(display);
     final needsAdmin =
+        !Platform.isAndroid &&
         settings.value.mode == ConnectionMode.tun &&
         !ElevationService.isAdmin();
 
@@ -468,7 +519,7 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Сервер не выбран',
+                    context.tr('Сервер не выбран'),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
@@ -476,7 +527,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 FilledButton.tonal(
                   onPressed: () => widget.onNavigate(1),
-                  child: const Text('Выбрать'),
+                  child: Text(context.tr('Выбрать')),
                 ),
               ],
             )
@@ -521,7 +572,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   TextButton(
                     onPressed: () => widget.onNavigate(1),
-                    child: const Text('Сменить'),
+                    child: Text(context.tr('Сменить')),
                   ),
                 ],
               ),
@@ -538,7 +589,7 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'TUN-режим требует прав администратора',
+                    context.tr('TUN-режим требует прав администратора'),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: scheme.tertiary,
                     ),
@@ -550,7 +601,7 @@ class _HomePageState extends State<HomePage> {
           if (connection.lastError != null && !connection.isConnected) ...[
             const SizedBox(height: 14),
             Text(
-              connection.lastError!,
+              context.tr(connection.lastError!),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(color: scheme.error),
             ),
@@ -576,34 +627,39 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Сессия', style: theme.textTheme.titleSmall),
+              Text(context.tr('Сессия'), style: theme.textTheme.titleSmall),
               const SizedBox(height: 16),
               _StatRow(
                 icon: Icons.timer_outlined,
-                label: 'Длительность',
+                label: context.tr('Длительность'),
                 value: formatDuration(connection.sessionDuration),
               ),
               const SizedBox(height: 14),
               _StatRow(
                 icon: Icons.download_rounded,
-                label: 'Получено',
+                label: context.tr('Получено'),
                 value: formatBytes(connection.download),
               ),
               const SizedBox(height: 14),
               _StatRow(
                 icon: Icons.upload_rounded,
-                label: 'Отправлено',
+                label: context.tr('Отправлено'),
                 value: formatBytes(connection.upload),
               ),
             ],
           ),
         ),
         const SizedBox(height: 16),
+        _buildIpCard(context),
+        const SizedBox(height: 16),
         SectionCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Режим подключения', style: theme.textTheme.titleSmall),
+              Text(
+                context.tr('Режим подключения'),
+                style: theme.textTheme.titleSmall,
+              ),
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
@@ -629,9 +685,15 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 10),
               Text(
                 settings.value.mode == ConnectionMode.tun
-                    ? 'Весь трафик через TUN-интерфейс. Требует прав администратора.'
-                    : 'Системный прокси 127.0.0.1:${settings.value.mixedPort}'
-                          '${settings.value.allowLan ? ' · доступен в локальной сети' : ''}.',
+                    ? context.tr(
+                        'Весь трафик через TUN-интерфейс. Требует прав администратора.',
+                      )
+                    : context.tr(
+                        settings.value.allowLan
+                            ? 'Системный прокси 127.0.0.1:{port} · доступен в локальной сети.'
+                            : 'Системный прокси 127.0.0.1:{port}.',
+                        {'port': settings.value.mixedPort},
+                      ),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
@@ -647,13 +709,15 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Движок: ${settings.value.engine.label}',
+                  context.tr('Движок: {engine}', {
+                    'engine': settings.value.engine.label,
+                  }),
                   style: theme.textTheme.bodyMedium,
                 ),
               ),
               TextButton(
                 onPressed: () => widget.onNavigate(4),
-                child: const Text('Настройки'),
+                child: Text(context.tr('Настройки')),
               ),
             ],
           ),
@@ -680,11 +744,14 @@ class _HomePageState extends State<HomePage> {
         children: [
           Row(
             children: [
-              Text('Быстрый выбор', style: theme.textTheme.titleSmall),
+              Text(
+                context.tr('Быстрый выбор'),
+                style: theme.textTheme.titleSmall,
+              ),
               const Spacer(),
               TextButton(
                 onPressed: () => widget.onNavigate(1),
-                child: const Text('Все серверы'),
+                child: Text(context.tr('Все серверы')),
               ),
             ],
           ),
@@ -733,7 +800,7 @@ class _HomePageState extends State<HomePage> {
                         color: scheme.primary,
                       ),
                     IconButton(
-                      tooltip: 'Подключиться',
+                      tooltip: context.tr('Подключиться'),
                       onPressed: () => _connectProfile(profile),
                       icon: const Icon(Icons.play_circle_outline_rounded),
                     ),
@@ -743,6 +810,141 @@ class _HomePageState extends State<HomePage> {
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildIpCard(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final info = context.watch<IpInfoController>();
+    final fallback = info.isLoading
+        ? context.tr('Определение…')
+        : context.tr('Недоступно');
+
+    return SectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.public_rounded, size: 19, color: scheme.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  context.tr('IP-адреса'),
+                  style: theme.textTheme.titleSmall,
+                ),
+              ),
+              if (info.isLoading)
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                IconButton(
+                  tooltip: context.tr('Обновить IP'),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: info.refresh,
+                  icon: const Icon(Icons.refresh_rounded, size: 19),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _ipRow(
+            context,
+            icon: Icons.language_rounded,
+            label: context.tr('Внешний IP'),
+            value: info.publicIp ?? fallback,
+            canCopy: info.publicIp != null,
+            onCopy: () => _copyIp(info.publicIp),
+          ),
+          const SizedBox(height: 10),
+          _ipRow(
+            context,
+            icon: Icons.lan_outlined,
+            label: context.tr('Локальный IP'),
+            value: info.localIp ?? fallback,
+            canCopy: info.localIp != null,
+            onCopy: () => _copyIp(info.localIp),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              if (info.error != null)
+                Tooltip(
+                  message: info.error!,
+                  child: Icon(
+                    Icons.info_outline_rounded,
+                    size: 14,
+                    color: scheme.error,
+                  ),
+                )
+              else
+                Icon(
+                  Icons.route_outlined,
+                  size: 14,
+                  color: scheme.onSurfaceVariant,
+                ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  context.tr('Проверяется через текущий сетевой маршрут'),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ipRow(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    required bool canCopy,
+    required VoidCallback onCopy,
+  }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: 17, color: scheme.onSurfaceVariant),
+        const SizedBox(width: 9),
+        SizedBox(
+          width: 82,
+          child: Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        Expanded(
+          child: SelectableText(
+            value,
+            textAlign: TextAlign.right,
+            maxLines: 1,
+            style: const TextStyle(
+              fontFamily: 'Consolas',
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        IconButton(
+          tooltip: context.tr('Копировать'),
+          visualDensity: VisualDensity.compact,
+          onPressed: canCopy ? onCopy : null,
+          icon: const Icon(Icons.copy_rounded, size: 16),
+        ),
+      ],
     );
   }
 

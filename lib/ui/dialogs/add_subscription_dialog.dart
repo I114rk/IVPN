@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/models/subscription.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/settings_controller.dart';
 import '../../services/subscription_controller.dart';
 
@@ -35,7 +36,7 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
   Future<void> _submit() async {
     final url = _url.text.trim();
     if (url.isEmpty) {
-      setState(() => _error = 'Укажите ссылку на подписку');
+      setState(() => _error = context.tr('Укажите ссылку на подписку'));
       return;
     }
     setState(() {
@@ -43,9 +44,10 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
       _error = null;
     });
     try {
-      final subscription = await context
-          .read<SubscriptionController>()
-          .add(name: _name.text, url: url);
+      final subscription = await context.read<SubscriptionController>().add(
+        name: _name.text,
+        url: url,
+      );
       if (mounted) Navigator.of(context).pop(subscription);
     } catch (error) {
       if (!mounted) return;
@@ -65,7 +67,7 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      title: const Text('Добавить подписку'),
+      title: Text(context.tr('Добавить подписку')),
       content: SizedBox(
         width: 480,
         child: Column(
@@ -75,9 +77,9 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
             TextField(
               controller: _name,
               enabled: !_loading,
-              decoration: const InputDecoration(
-                labelText: 'Название (необязательно)',
-                hintText: 'Моя подписка',
+              decoration: InputDecoration(
+                labelText: context.tr('Название (необязательно)'),
+                hintText: context.tr('Моя подписка'),
               ),
             ),
             const SizedBox(height: 14),
@@ -86,17 +88,17 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
               enabled: !_loading,
               autofocus: true,
               onSubmitted: (_) => _loading ? null : _submit(),
-              decoration: const InputDecoration(
-                labelText: 'Ссылка подписки',
+              decoration: InputDecoration(
+                labelText: context.tr('Ссылка подписки'),
                 hintText: 'https://sub.example.com/api/sub/…',
               ),
             ),
             const SizedBox(height: 10),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Отправлять HWID'),
-              subtitle: const Text(
-                'Remnawave использует HWID для привязки устройства',
+              title: Text(context.tr('Отправлять HWID')),
+              subtitle: Text(
+                context.tr('Remnawave использует HWID для привязки устройства'),
               ),
               value: settings.value.sendHwid,
               onChanged: _loading
@@ -105,20 +107,27 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
             ),
             if (emulation != null)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: scheme.tertiaryContainer,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.smart_toy_outlined,
-                        size: 16, color: scheme.onTertiaryContainer),
+                    Icon(
+                      Icons.smart_toy_outlined,
+                      size: 16,
+                      color: scheme.onTertiaryContainer,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Эмуляция клиента: ${emulation.name}',
+                        context.tr('Эмуляция клиента: {name}', {
+                          'name': emulation.name,
+                        }),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: scheme.onTertiaryContainer,
                         ),
@@ -138,14 +147,18 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.error_outline_rounded,
-                        size: 18, color: scheme.onErrorContainer),
+                    Icon(
+                      Icons.error_outline_rounded,
+                      size: 18,
+                      color: scheme.onErrorContainer,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         _error!,
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: scheme.onErrorContainer),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onErrorContainer,
+                        ),
                       ),
                     ),
                   ],
@@ -162,7 +175,7 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
       actions: [
         TextButton(
           onPressed: _loading ? null : () => Navigator.of(context).pop(),
-          child: const Text('Отмена'),
+          child: Text(context.tr('Отмена')),
         ),
         FilledButton.icon(
           onPressed: _loading ? null : _submit,
@@ -173,7 +186,7 @@ class _AddSubscriptionDialogState extends State<AddSubscriptionDialog> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.add_rounded, size: 18),
-          label: const Text('Добавить'),
+          label: Text(context.tr('Добавить')),
         ),
       ],
     );

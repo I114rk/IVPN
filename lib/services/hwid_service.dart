@@ -30,9 +30,9 @@ class HwidService {
   }
 
   Future<Map<String, String>> info() async => {
-        'hwid': await value,
-        'os': await _device.osName(),
-        'osVersion': await _device.osVersion(),
-        'model': await _device.deviceModel(),
-      };
+    'hwid': await value,
+    'os': await _device.osName(),
+    'osVersion': await _device.osVersion(),
+    'model': await _device.deviceModel(),
+  };
 }

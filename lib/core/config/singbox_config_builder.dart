@@ -9,13 +9,14 @@ class SingboxConfigBuilder {
   static Map<String, dynamic> build({
     required ProxyProfile profile,
     required AppSettings settings,
+    bool android = false,
   }) {
     return {
       'log': {'level': 'info', 'timestamp': true},
       'dns': _dns(),
       'inbounds': [
-        if (settings.mode == ConnectionMode.tun)
-          _tunInbound(settings)
+        if (settings.mode == ConnectionMode.tun || android)
+          _tunInbound(settings, android: android)
         else
           _mixedInbound(settings),
       ],
@@ -193,11 +194,7 @@ class SingboxConfigBuilder {
   static Map<String, dynamic> _dns() {
     return {
       'servers': [
-        {
-          'type': 'udp',
-          'tag': 'local',
-          'server': '223.5.5.5',
-        },
+        {'type': 'udp', 'tag': 'local', 'server': '223.5.5.5'},
         {
           'type': 'https',
           'tag': 'remote',
@@ -217,16 +214,19 @@ class SingboxConfigBuilder {
     };
   }
 
-  static Map<String, dynamic> _tunInbound(AppSettings settings) {
+  static Map<String, dynamic> _tunInbound(
+    AppSettings settings, {
+    bool android = false,
+  }) {
     return {
       'type': 'tun',
       'tag': 'tun-in',
-      'interface_name': 'IVPN',
+      if (!android) 'interface_name': 'IVPN',
       'address': ['172.19.0.1/30', 'fdfe:dcba:9876::1/126'],
       'mtu': 9000,
       'auto_route': true,
       'strict_route': true,
-      'stack': settings.tunStack,
+      'stack': android ? 'gvisor' : settings.tunStack,
     };
   }
 

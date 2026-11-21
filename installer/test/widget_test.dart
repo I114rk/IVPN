@@ -10,13 +10,12 @@ void main() {
     await tester.pumpWidget(const InstallerApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Добро пожаловать'), findsOneWidget);
-    expect(find.text('Продолжить'), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_forward_rounded), findsOneWidget);
 
-    await tester.tap(find.text('Продолжить'));
+    await tester.tap(find.byIcon(Icons.arrow_forward_rounded));
     await tester.pumpAndSettle();
 
-    expect(find.text('Параметры установки'), findsOneWidget);
-    expect(find.text('Установить'), findsOneWidget);
+    expect(find.byType(TextField), findsNWidgets(3));
+    expect(find.byIcon(Icons.download_rounded), findsOneWidget);
   });
 }

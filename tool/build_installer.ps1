@@ -1,6 +1,11 @@
 $ErrorActionPreference = 'Stop'
 
 $root = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$pubspec = Get-Content -LiteralPath (Join-Path $root 'pubspec.yaml') -Raw
+if ($pubspec -notmatch '(?m)^version:\s*(\d+\.\d+\.\d+)\+\d+\s*$') {
+  throw 'Could not read the application version from pubspec.yaml.'
+}
+$version = $Matches[1]
 $installerRoot = Join-Path $root 'installer'
 $appRelease = Join-Path $root 'build\windows\x64\runner\Release'
 $installerRelease = Join-Path $installerRoot 'build\windows\x64\runner\Release'
@@ -8,7 +13,7 @@ $assetsDirectory = Join-Path $installerRoot 'assets'
 $payload = Join-Path $assetsDirectory 'payload.zip'
 $distDirectory = Join-Path $root 'dist'
 $packageDirectory = Join-Path $distDirectory 'IVPN-Setup'
-$packageArchive = Join-Path $distDirectory 'IVPN-Setup-1.0.0.zip'
+$packageArchive = Join-Path $distDirectory "IVPN-Setup-$version.zip"
 
 function Invoke-Flutter([string]$directory, [string[]]$arguments) {
   Push-Location $directory
@@ -43,7 +48,7 @@ if (Test-Path -LiteralPath $payload) {
 Compress-Archive -Path "$appRelease\*" -DestinationPath $payload -CompressionLevel Optimal
 
 Invoke-Flutter $installerRoot @('pub', 'get')
-Invoke-Flutter $installerRoot @('build', 'windows', '--release')
+Invoke-Flutter $installerRoot @('build', 'windows', '--release', "--dart-define=APP_VERSION=$version")
 
 if (-not (Test-Path -LiteralPath (Join-Path $installerRelease 'ivpn_installer.exe'))) {
   throw "Installer build not found: $installerRelease"
@@ -63,7 +68,7 @@ if (Test-Path -LiteralPath $packageArchive) {
   }
   catch {
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-    $packageArchive = Join-Path $distDirectory "IVPN-Setup-1.0.0-$stamp.zip"
+    $packageArchive = Join-Path $distDirectory "IVPN-Setup-$version-$stamp.zip"
     Write-Warning "The previous archive is in use; writing $packageArchive instead."
   }
 }

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:window_manager/legacy.dart';
 
 import '../../services/settings_controller.dart';
+import '../../l10n/app_localizations.dart';
 
 class AppTitleBar extends StatefulWidget {
   const AppTitleBar({super.key});
@@ -20,9 +21,11 @@ class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
   void initState() {
     super.initState();
     windowManager.addListener(this);
-    unawaited(windowManager.isMaximized().then((value) {
-      if (mounted) setState(() => _maximized = value);
-    }));
+    unawaited(
+      windowManager.isMaximized().then((value) {
+        if (mounted) setState(() => _maximized = value);
+      }),
+    );
   }
 
   @override
@@ -105,8 +108,10 @@ class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
             Tooltip(
               message: 'User-Agent: ${emulation.userAgent}',
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: scheme.tertiaryContainer,
                   borderRadius: BorderRadius.circular(10),
@@ -121,7 +126,7 @@ class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Эмуляция: ${emulation.name}',
+                      context.tr('Эмуляция: {name}', {'name': emulation.name}),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: scheme.onTertiaryContainer,
                         fontWeight: FontWeight.w600,
@@ -146,7 +151,9 @@ class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
             onPressed: () => windowManager.minimize(),
           ),
           _WindowButton(
-            icon: _maximized ? Icons.filter_none_rounded : Icons.crop_square_rounded,
+            icon: _maximized
+                ? Icons.filter_none_rounded
+                : Icons.crop_square_rounded,
             onPressed: _toggleMaximize,
           ),
           _WindowButton(

@@ -59,9 +59,7 @@ class SubscriptionClient {
   }) async {
     final uri = Uri.tryParse(url);
     if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
-      throw const SubscriptionRequestException(
-        'Некорректная ссылка подписки',
-      );
+      throw const SubscriptionRequestException('Некорректная ссылка подписки');
     }
 
     final request = http.Request('GET', uri)
@@ -107,19 +105,21 @@ class SubscriptionClient {
     final headersMap = response.headers;
     return SubscriptionFetchResult(
       parsed: parsed,
-      usage: SubscriptionUsage.parseHeader(_header(headersMap, 'subscription-userinfo')),
+      usage: SubscriptionUsage.parseHeader(
+        _header(headersMap, 'subscription-userinfo'),
+      ),
       title: _decodeTitle(_header(headersMap, 'profile-title')),
       announce: _decodeTitle(_header(headersMap, 'announce')),
       supportUrl: _header(headersMap, 'support-url'),
       webPageUrl: _header(headersMap, 'profile-web-page-url'),
-      updateIntervalHours:
-          int.tryParse(_header(headersMap, 'profile-update-interval') ?? ''),
+      updateIntervalHours: int.tryParse(
+        _header(headersMap, 'profile-update-interval') ?? '',
+      ),
       hwidActive: _header(headersMap, 'x-hwid-active') == 'true',
       hwidLimitReached:
           _header(headersMap, 'x-hwid-max-devices-reached') == 'true' ||
-              _header(headersMap, 'x-hwid-limit') == 'true',
-      hwidNotSupported:
-          _header(headersMap, 'x-hwid-not-supported') == 'true',
+          _header(headersMap, 'x-hwid-limit') == 'true',
+      hwidNotSupported: _header(headersMap, 'x-hwid-not-supported') == 'true',
     );
   }
 
@@ -129,7 +129,8 @@ class SubscriptionClient {
     String body,
   ) {
     final hwidNotSupported = _header(headers, 'x-hwid-not-supported') == 'true';
-    final hwidLimit = _header(headers, 'x-hwid-max-devices-reached') == 'true' ||
+    final hwidLimit =
+        _header(headers, 'x-hwid-max-devices-reached') == 'true' ||
         _header(headers, 'x-hwid-limit') == 'true';
 
     if (hwidLimit) {
@@ -147,21 +148,21 @@ class SubscriptionClient {
     }
     return switch (statusCode) {
       403 => SubscriptionRequestException(
-          'Доступ запрещён (403). Проверьте ссылку подписки.',
-          statusCode: statusCode,
-        ),
+        'Доступ запрещён (403). Проверьте ссылку подписки.',
+        statusCode: statusCode,
+      ),
       404 => SubscriptionRequestException(
-          'Подписка не найдена (404). Проверьте ссылку или HWID.',
-          statusCode: statusCode,
-        ),
+        'Подписка не найдена (404). Проверьте ссылку или HWID.',
+        statusCode: statusCode,
+      ),
       451 => SubscriptionRequestException(
-          'Доступ ограничен по требованию правообладателя (451).',
-          statusCode: statusCode,
-        ),
+        'Доступ ограничен по требованию правообладателя (451).',
+        statusCode: statusCode,
+      ),
       _ => SubscriptionRequestException(
-          'Сервер вернул ошибку HTTP $statusCode',
-          statusCode: statusCode,
-        ),
+        'Сервер вернул ошибку HTTP $statusCode',
+        statusCode: statusCode,
+      ),
     };
   }
 

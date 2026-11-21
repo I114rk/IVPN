@@ -16,7 +16,8 @@ class SubscriptionUsage {
   bool get hasTotal => total > 0;
   bool get isExpired =>
       expire > 0 &&
-      DateTime.fromMillisecondsSinceEpoch(expire * 1000).isBefore(DateTime.now());
+      DateTime.fromMillisecondsSinceEpoch(expire * 1000)
+          .isBefore(DateTime.now());
 
   int get used => upload + download;
 
@@ -25,16 +26,15 @@ class SubscriptionUsage {
     return (used / total).clamp(0.0, 1.0);
   }
 
-  DateTime? get expireDate => expire > 0
-      ? DateTime.fromMillisecondsSinceEpoch(expire * 1000)
-      : null;
+  DateTime? get expireDate =>
+      expire > 0 ? DateTime.fromMillisecondsSinceEpoch(expire * 1000) : null;
 
   Map<String, dynamic> toJson() => {
-        'upload': upload,
-        'download': download,
-        'total': total,
-        'expire': expire,
-      };
+    'upload': upload,
+    'download': download,
+    'total': total,
+    'expire': expire,
+  };
 
   factory SubscriptionUsage.fromJson(Map<String, dynamic> json) {
     return SubscriptionUsage(
@@ -149,24 +149,24 @@ class Subscription {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'url': url,
-        'addedAt': addedAt.toIso8601String(),
-        'updatedAt': updatedAt?.toIso8601String(),
-        'format': format,
-        'title': title,
-        'announce': announce,
-        'supportUrl': supportUrl,
-        'webPageUrl': webPageUrl,
-        'updateIntervalHours': updateIntervalHours,
-        'hwidActive': hwidActive,
-        'hwidLimitReached': hwidLimitReached,
-        'hwidNotSupported': hwidNotSupported,
-        'usage': usage?.toJson(),
-        'profiles': profiles.map((profile) => profile.toJson()).toList(),
-        'error': error,
-      };
+    'id': id,
+    'name': name,
+    'url': url,
+    'addedAt': addedAt.toIso8601String(),
+    'updatedAt': updatedAt?.toIso8601String(),
+    'format': format,
+    'title': title,
+    'announce': announce,
+    'supportUrl': supportUrl,
+    'webPageUrl': webPageUrl,
+    'updateIntervalHours': updateIntervalHours,
+    'hwidActive': hwidActive,
+    'hwidLimitReached': hwidLimitReached,
+    'hwidNotSupported': hwidNotSupported,
+    'usage': usage?.toJson(),
+    'profiles': profiles.map((profile) => profile.toJson()).toList(),
+    'error': error,
+  };
 
   factory Subscription.fromJson(Map<String, dynamic> json) {
     final rawProfiles = (json['profiles'] as List?) ?? const [];
@@ -174,7 +174,8 @@ class Subscription {
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? 'Subscription',
       url: json['url']?.toString() ?? '',
-      addedAt: DateTime.tryParse(json['addedAt']?.toString() ?? '') ??
+      addedAt:
+          DateTime.tryParse(json['addedAt']?.toString() ?? '') ??
           DateTime.now(),
       updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? ''),
       format: json['format']?.toString() ?? 'unknown',
@@ -188,7 +189,8 @@ class Subscription {
       hwidNotSupported: json['hwidNotSupported'] == true,
       usage: json['usage'] is Map
           ? SubscriptionUsage.fromJson(
-              (json['usage'] as Map).cast<String, dynamic>())
+              (json['usage'] as Map).cast<String, dynamic>(),
+            )
           : null,
       profiles: rawProfiles
           .whereType<Map>()

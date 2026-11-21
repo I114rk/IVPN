@@ -3,6 +3,8 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  flutter_sing_box
+  mmkv_win32
   url_launcher_windows
 )
 

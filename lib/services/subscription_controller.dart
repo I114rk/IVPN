@@ -32,8 +32,9 @@ class SubscriptionController extends ChangeNotifier {
   bool get isBusy => _busy;
   String? get busySubscriptionId => _busySubscriptionId;
 
-  List<ProxyProfile> get allProfiles =>
-      [for (final subscription in _subscriptions) ...subscription.profiles];
+  List<ProxyProfile> get allProfiles => [
+    for (final subscription in _subscriptions) ...subscription.profiles,
+  ];
 
   Future<void> init() async {
     _subscriptions = _store.subscriptions;
@@ -154,10 +155,7 @@ class SubscriptionController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Subscription _applyResult(
-    Subscription base,
-    SubscriptionFetchResult result,
-  ) {
+  Subscription _applyResult(Subscription base, SubscriptionFetchResult result) {
     return Subscription(
       id: base.id,
       name: base.name,

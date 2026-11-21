@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class ConnectOrb extends StatefulWidget {
   const ConnectOrb({
     super.key,
@@ -61,10 +63,10 @@ class _ConnectOrbState extends State<ConnectOrb>
     final theme = Theme.of(context);
     final active = widget.connected || widget.busy;
     final label = widget.busy
-        ? 'ПОДКЛЮЧЕНИЕ'
+        ? context.tr('ПОДКЛЮЧЕНИЕ')
         : widget.connected
-            ? 'ОТКЛЮЧИТЬ'
-            : 'ПОДКЛЮЧИТЬ';
+        ? context.tr('ОТКЛЮЧИТЬ')
+        : context.tr('ПОДКЛЮЧИТЬ');
 
     return SizedBox(
       width: widget.size + 72,
@@ -82,8 +84,9 @@ class _ConnectOrbState extends State<ConnectOrb>
                   height: widget.size + 12 + t * 40,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: scheme.primary
-                        .withValues(alpha: 0.10 * (1 - t) + 0.02),
+                    color: scheme.primary.withValues(
+                      alpha: 0.10 * (1 - t) + 0.02,
+                    ),
                   ),
                 ),
               Container(

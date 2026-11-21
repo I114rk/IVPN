@@ -33,8 +33,9 @@ class StateStore {
   }
 
   Future<void> saveSubscriptions(List<Subscription> subscriptions) async {
-    _state['subscriptions'] =
-        subscriptions.map((subscription) => subscription.toJson()).toList();
+    _state['subscriptions'] = subscriptions
+        .map((subscription) => subscription.toJson())
+        .toList();
     await _persist();
   }
 

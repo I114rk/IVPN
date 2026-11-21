@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/models/proxy_profile.dart';
 import '../../core/models/subscription.dart';
 import '../../core/utils/latency.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/connection_controller.dart';
 import '../../services/settings_controller.dart';
 import '../../services/subscription_controller.dart';
@@ -103,13 +104,19 @@ class _ServersPageState extends State<ServersPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               PageHeader(
-                title: 'Серверы',
+                title: context.tr('Серверы'),
                 subtitle: totalProfiles == 0
-                    ? 'Список пуст'
-                    : '$totalProfiles серверов · ${duplicates.length} с повторяющимся IP',
+                    ? context.tr('Список пуст')
+                    : context.tr(
+                        '{servers} серверов · {duplicates} с повторяющимся IP',
+                        {
+                          'servers': totalProfiles,
+                          'duplicates': duplicates.length,
+                        },
+                      ),
                 actions: [
                   FilterChip(
-                    label: const Text('Дубликаты'),
+                    label: Text(context.tr('Дубликаты')),
                     avatar: duplicates.isEmpty
                         ? null
                         : Icon(
@@ -130,18 +137,18 @@ class _ServersPageState extends State<ServersPage> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.network_ping_rounded, size: 18),
-                    label: const Text('Пинг'),
+                    label: Text(context.tr('Пинг')),
                   ),
                   FilledButton.tonalIcon(
                     onPressed: () async {
                       final controller = context.read<SubscriptionController>();
                       await controller.refreshAll();
                       if (context.mounted) {
-                        showAppSnack(context, 'Подписки обновлены');
+                        showAppSnack(context, context.tr('Подписки обновлены'));
                       }
                     },
                     icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: const Text('Обновить'),
+                    label: Text(context.tr('Обновить')),
                   ),
                 ],
               ),
@@ -152,7 +159,9 @@ class _ServersPageState extends State<ServersPage> {
                   controller: _search,
                   onChanged: (value) => setState(() => _query = value),
                   decoration: InputDecoration(
-                    hintText: 'Поиск по имени, адресу или протоколу',
+                    hintText: context.tr(
+                      'Поиск по имени, адресу или протоколу',
+                    ),
                     prefixIcon: const Icon(Icons.search_rounded),
                     suffixIcon: _query.isEmpty
                         ? null
@@ -174,16 +183,20 @@ class _ServersPageState extends State<ServersPage> {
               ? EmptyState(
                   icon: Icons.dns_outlined,
                   title: totalProfiles == 0
-                      ? 'Нет серверов'
-                      : 'Ничего не найдено',
+                      ? context.tr('Нет серверов')
+                      : context.tr('Ничего не найдено'),
                   message: totalProfiles == 0
-                      ? 'Добавьте подписку, чтобы здесь появились серверы.'
-                      : 'Измените поисковый запрос или отключите фильтр дубликатов.',
+                      ? context.tr(
+                          'Добавьте подписку, чтобы здесь появились серверы.',
+                        )
+                      : context.tr(
+                          'Измените поисковый запрос или отключите фильтр дубликатов.',
+                        ),
                   action: totalProfiles == 0 && widget.onNavigate != null
                       ? FilledButton.icon(
                           onPressed: () => widget.onNavigate!(2),
                           icon: const Icon(Icons.add_rounded),
-                          label: const Text('Добавить подписку'),
+                          label: Text(context.tr('Добавить подписку')),
                         )
                       : null,
                 )
@@ -261,7 +274,7 @@ class _ServersPageState extends State<ServersPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '$duplicateCount дублей IP',
+                    context.tr('{count} дублей IP', {'count': duplicateCount}),
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: scheme.onErrorContainer,
                     ),
@@ -350,7 +363,7 @@ class _ServersPageState extends State<ServersPage> {
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                'ДУБЛЬ IP',
+                                context.tr('ДУБЛЬ IP'),
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: scheme.onError,
                                   fontSize: 9,
@@ -393,7 +406,7 @@ class _ServersPageState extends State<ServersPage> {
                     ),
                   ),
                 IconButton(
-                  tooltip: 'Подключиться',
+                  tooltip: context.tr('Подключиться'),
                   onPressed: () => _connect(profile),
                   icon: Icon(
                     Icons.play_circle_outline_rounded,

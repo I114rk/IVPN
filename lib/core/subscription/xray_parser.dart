@@ -19,11 +19,13 @@ class XrayParser {
 
     final profiles = <ProxyProfile>[];
     for (final config in configs) {
-      profiles.addAll(parseConfig(
-        config,
-        subscriptionId: subscriptionId,
-        subscriptionName: subscriptionName,
-      ));
+      profiles.addAll(
+        parseConfig(
+          config,
+          subscriptionId: subscriptionId,
+          subscriptionName: subscriptionName,
+        ),
+      );
     }
     return profiles;
   }
@@ -67,7 +69,8 @@ class XrayParser {
     final settings =
         (outbound['settings'] as Map?)?.cast<String, dynamic>() ?? const {};
     final stream =
-        (outbound['streamSettings'] as Map?)?.cast<String, dynamic>() ?? const {};
+        (outbound['streamSettings'] as Map?)?.cast<String, dynamic>() ??
+        const {};
 
     String server = '';
     int port = 0;
@@ -114,7 +117,8 @@ class XrayParser {
     final tlsSettings =
         (stream['tlsSettings'] as Map?)?.cast<String, dynamic>() ?? const {};
     final realitySettings =
-        (stream['realitySettings'] as Map?)?.cast<String, dynamic>() ?? const {};
+        (stream['realitySettings'] as Map?)?.cast<String, dynamic>() ??
+        const {};
     final wsSettings =
         (stream['wsSettings'] as Map?)?.cast<String, dynamic>() ?? const {};
     final grpcSettings =
@@ -122,7 +126,8 @@ class XrayParser {
     final httpSettings =
         (stream['httpSettings'] as Map?)?.cast<String, dynamic>() ?? const {};
     final httpUpgradeSettings =
-        (stream['httpupgradeSettings'] as Map?)?.cast<String, dynamic>() ?? const {};
+        (stream['httpupgradeSettings'] as Map?)?.cast<String, dynamic>() ??
+        const {};
     final xhttpSettings =
         (stream['xhttpSettings'] as Map?)?.cast<String, dynamic>() ?? const {};
 
@@ -189,15 +194,13 @@ class XrayParser {
       realityPublicKey: isReality
           ? (realitySettings['publicKey'] ?? '').toString()
           : null,
-      realityShortId:
-          isReality ? (realitySettings['shortId'] ?? '').toString() : null,
+      realityShortId: isReality
+          ? (realitySettings['shortId'] ?? '').toString()
+          : null,
       allowInsecure: tlsSettings['allowInsecure'] == true,
       subscriptionId: subscriptionId,
       subscriptionName: subscriptionName,
-      extra: {
-        'xray_outbound': outbound,
-        'xray_stream': stream,
-      },
+      extra: {'xray_outbound': outbound, 'xray_stream': stream},
     );
   }
 

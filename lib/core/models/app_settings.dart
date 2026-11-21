@@ -6,6 +6,8 @@ enum CoreEngine { singbox, xray, openvpn }
 
 enum ThemePreference { system, light, dark }
 
+enum AppLanguage { system, ru, en, de }
+
 enum UserAgentPreset { singbox, xray, base64, custom }
 
 extension ConnectionModeX on ConnectionMode {
@@ -14,34 +16,34 @@ extension ConnectionModeX on ConnectionMode {
 
 extension CoreEngineX on CoreEngine {
   String get label => switch (this) {
-        CoreEngine.singbox => 'Sing-box',
-        CoreEngine.xray => 'Xray',
-        CoreEngine.openvpn => 'OpenVPN',
-      };
+    CoreEngine.singbox => 'Sing-box',
+    CoreEngine.xray => 'Xray',
+    CoreEngine.openvpn => 'OpenVPN',
+  };
 }
 
 extension ThemePreferenceX on ThemePreference {
   String get label => switch (this) {
-        ThemePreference.system => 'Системная',
-        ThemePreference.light => 'Светлая',
-        ThemePreference.dark => 'Тёмная',
-      };
+    ThemePreference.system => 'Системная',
+    ThemePreference.light => 'Светлая',
+    ThemePreference.dark => 'Тёмная',
+  };
 }
 
 extension UserAgentPresetX on UserAgentPreset {
   String get label => switch (this) {
-        UserAgentPreset.singbox => 'Sing-box JSON',
-        UserAgentPreset.xray => 'Xray JSON (Happ)',
-        UserAgentPreset.base64 => 'Base64 / авто',
-        UserAgentPreset.custom => 'Свой',
-      };
+    UserAgentPreset.singbox => 'Sing-box JSON',
+    UserAgentPreset.xray => 'Xray JSON (Happ)',
+    UserAgentPreset.base64 => 'Base64 / авто',
+    UserAgentPreset.custom => 'Свой',
+  };
 
   String get userAgent => switch (this) {
-        UserAgentPreset.singbox => 'sing-box/1.12.0 (singbox; IVPN)',
-        UserAgentPreset.xray => 'Happ/1.0 (IVPN; v2rayN)',
-        UserAgentPreset.base64 => 'IVPN/1.0',
-        UserAgentPreset.custom => 'IVPN/1.0',
-      };
+    UserAgentPreset.singbox => 'sing-box/1.12.0 (singbox; IVPN)',
+    UserAgentPreset.xray => 'Happ/1.0 (IVPN; v2rayN)',
+    UserAgentPreset.base64 => 'IVPN/1.0',
+    UserAgentPreset.custom => 'IVPN/1.0',
+  };
 }
 
 class AppSettings {
@@ -53,6 +55,7 @@ class AppSettings {
   final bool allowLan;
   final bool autoRefreshSubscriptions;
   final ThemePreference theme;
+  final AppLanguage language;
   final bool dynamicColor;
   final int? seedColor;
   final bool sendHwid;
@@ -73,6 +76,7 @@ class AppSettings {
     this.allowLan = false,
     this.autoRefreshSubscriptions = true,
     this.theme = ThemePreference.system,
+    this.language = AppLanguage.system,
     this.dynamicColor = true,
     this.seedColor,
     this.sendHwid = true,
@@ -106,6 +110,7 @@ class AppSettings {
     bool? allowLan,
     bool? autoRefreshSubscriptions,
     ThemePreference? theme,
+    AppLanguage? language,
     bool? dynamicColor,
     int? seedColor,
     bool clearSeedColor = false,
@@ -130,6 +135,7 @@ class AppSettings {
       autoRefreshSubscriptions:
           autoRefreshSubscriptions ?? this.autoRefreshSubscriptions,
       theme: theme ?? this.theme,
+      language: language ?? this.language,
       dynamicColor: dynamicColor ?? this.dynamicColor,
       seedColor: clearSeedColor ? null : (seedColor ?? this.seedColor),
       sendHwid: sendHwid ?? this.sendHwid,
@@ -148,25 +154,26 @@ class AppSettings {
   }
 
   Map<String, dynamic> toJson() => {
-        'mode': mode.name,
-        'engine': engine.name,
-        'mixedPort': mixedPort,
-        'tunStack': tunStack,
-        'setSystemProxy': setSystemProxy,
-        'allowLan': allowLan,
-        'autoRefreshSubscriptions': autoRefreshSubscriptions,
-        'theme': theme.name,
-        'dynamicColor': dynamicColor,
-        'seedColor': seedColor,
-        'sendHwid': sendHwid,
-        'userAgentPreset': userAgentPreset.name,
-        'customUserAgent': customUserAgent,
-        'emulatedClientId': emulatedClientId,
-        'openvpnPath': openvpnPath,
-        'selectedProfileId': selectedProfileId,
-        'autoConnect': autoConnect,
-        'launchAtStartup': launchAtStartup,
-      };
+    'mode': mode.name,
+    'engine': engine.name,
+    'mixedPort': mixedPort,
+    'tunStack': tunStack,
+    'setSystemProxy': setSystemProxy,
+    'allowLan': allowLan,
+    'autoRefreshSubscriptions': autoRefreshSubscriptions,
+    'theme': theme.name,
+    'language': language.name,
+    'dynamicColor': dynamicColor,
+    'seedColor': seedColor,
+    'sendHwid': sendHwid,
+    'userAgentPreset': userAgentPreset.name,
+    'customUserAgent': customUserAgent,
+    'emulatedClientId': emulatedClientId,
+    'openvpnPath': openvpnPath,
+    'selectedProfileId': selectedProfileId,
+    'autoConnect': autoConnect,
+    'launchAtStartup': launchAtStartup,
+  };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
     T enumValue<T extends Enum>(List<T> values, Object? raw, T fallback) {
@@ -180,20 +187,30 @@ class AppSettings {
 
     return AppSettings(
       mode: enumValue(ConnectionMode.values, json['mode'], ConnectionMode.tun),
-      engine:
-          enumValue(CoreEngine.values, json['engine'], CoreEngine.singbox),
+      engine: enumValue(CoreEngine.values, json['engine'], CoreEngine.singbox),
       mixedPort: (json['mixedPort'] as num?)?.toInt() ?? 2080,
       tunStack: json['tunStack']?.toString() ?? 'system',
       setSystemProxy: json['setSystemProxy'] != false,
       allowLan: json['allowLan'] == true,
       autoRefreshSubscriptions: json['autoRefreshSubscriptions'] != false,
       theme: enumValue(
-          ThemePreference.values, json['theme'], ThemePreference.system),
+        ThemePreference.values,
+        json['theme'],
+        ThemePreference.system,
+      ),
+      language: enumValue(
+        AppLanguage.values,
+        json['language'],
+        AppLanguage.system,
+      ),
       dynamicColor: json['dynamicColor'] != false,
       seedColor: (json['seedColor'] as num?)?.toInt(),
       sendHwid: json['sendHwid'] != false,
       userAgentPreset: enumValue(
-          UserAgentPreset.values, json['userAgentPreset'], UserAgentPreset.singbox),
+        UserAgentPreset.values,
+        json['userAgentPreset'],
+        UserAgentPreset.singbox,
+      ),
       customUserAgent: json['customUserAgent']?.toString(),
       emulatedClientId: json['emulatedClientId']?.toString(),
       openvpnPath: json['openvpnPath']?.toString(),

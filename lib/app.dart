@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'core/models/app_settings.dart';
+import 'l10n/app_localizations.dart';
 import 'services/settings_controller.dart';
 import 'ui/shell/app_shell.dart';
 import 'ui/theme/app_theme.dart';
@@ -19,6 +20,14 @@ class IvpnApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(seedColor: seed, brightness: Brightness.light),
       darkTheme: buildAppTheme(seedColor: seed, brightness: Brightness.dark),
+      locale: switch (settings.value.language) {
+        AppLanguage.system => null,
+        AppLanguage.ru => const Locale('ru'),
+        AppLanguage.en => const Locale('en'),
+        AppLanguage.de => const Locale('de'),
+      },
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       themeMode: switch (settings.value.theme) {
         ThemePreference.system => ThemeMode.system,
         ThemePreference.light => ThemeMode.light,

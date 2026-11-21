@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:window_manager/legacy.dart';
 
 import '../../platform/elevation.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/connection_controller.dart';
 
 void showAppSnack(
@@ -43,8 +44,8 @@ Future<bool> showConfirmDialog(
   BuildContext context, {
   required String title,
   required String message,
-  String confirmLabel = 'Удалить',
-  String cancelLabel = 'Отмена',
+  String? confirmLabel,
+  String? cancelLabel,
   bool destructive = true,
 }) async {
   final scheme = Theme.of(context).colorScheme;
@@ -57,7 +58,7 @@ Future<bool> showConfirmDialog(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: Text(cancelLabel),
+          child: Text(cancelLabel ?? context.tr('Отмена')),
         ),
         FilledButton(
           style: destructive
@@ -67,7 +68,7 @@ Future<bool> showConfirmDialog(
                 )
               : null,
           onPressed: () => Navigator.of(context).pop(true),
-          child: Text(confirmLabel),
+          child: Text(confirmLabel ?? context.tr('Удалить')),
         ),
       ],
     ),
@@ -81,19 +82,21 @@ Future<void> showConnectionError(BuildContext context, Object error) async {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Нужны права администратора'),
-        content: const Text(
-          'TUN-режим и OpenVPN требуют запуска от имени администратора. '
-          'Перезапустить IVPN с повышенными правами?',
+        title: Text(context.tr('Нужны права администратора')),
+        content: Text(
+          context.tr(
+            'TUN-режим и OpenVPN требуют запуска от имени администратора. '
+            'Перезапустить IVPN с повышенными правами?',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Отмена'),
+            child: Text(context.tr('Отмена')),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Перезапустить'),
+            child: Text(context.tr('Перезапустить')),
           ),
         ],
       ),
@@ -103,8 +106,11 @@ Future<void> showConnectionError(BuildContext context, Object error) async {
       if (launched) {
         await windowManager.destroy();
       } else if (context.mounted) {
-        showAppSnack(context, 'Не удалось перезапустить с правами администратора',
-            error: true);
+        showAppSnack(
+          context,
+          context.tr('Не удалось перезапустить с правами администратора'),
+          error: true,
+        );
       }
     }
     return;
@@ -231,10 +237,7 @@ class EmptyState extends StatelessWidget {
                 color: scheme.onSurfaceVariant,
               ),
             ),
-            if (action != null) ...[
-              const SizedBox(height: 20),
-              action!,
-            ],
+            if (action != null) ...[const SizedBox(height: 20), action!],
           ],
         ),
       ),

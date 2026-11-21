@@ -124,11 +124,7 @@ class CoreManager {
         installed: hasXray,
         version: hasXray ? await detectVersion(xrayPath) : null,
       ),
-      CoreStatus(
-        name: 'Wintun',
-        path: wintunPath,
-        installed: hasWintun,
-      ),
+      CoreStatus(name: 'Wintun', path: wintunPath, installed: hasWintun),
     ];
   }
 
@@ -172,15 +168,18 @@ class CoreManager {
   }
 
   Future<Map<String, dynamic>> _latestRelease(String repository) async {
-    final uri =
-        Uri.parse('https://api.github.com/repos/$repository/releases/latest');
-    final response = await _client.get(
-      uri,
-      headers: {
-        'Accept': 'application/vnd.github+json',
-        'User-Agent': 'IVPN/1.0',
-      },
-    ).timeout(const Duration(seconds: 30));
+    final uri = Uri.parse(
+      'https://api.github.com/repos/$repository/releases/latest',
+    );
+    final response = await _client
+        .get(
+          uri,
+          headers: {
+            'Accept': 'application/vnd.github+json',
+            'User-Agent': 'IVPN/1.0',
+          },
+        )
+        .timeout(const Duration(seconds: 30));
     if (response.statusCode != 200) {
       throw CoreDownloadException(
         'GitHub API вернул ${response.statusCode}. '
@@ -216,8 +215,9 @@ class CoreManager {
   ) async {
     final request = http.Request('GET', Uri.parse(url))
       ..headers['User-Agent'] = 'IVPN/1.0';
-    final response =
-        await _client.send(request).timeout(const Duration(seconds: 120));
+    final response = await _client
+        .send(request)
+        .timeout(const Duration(seconds: 120));
     if (response.statusCode != 200) {
       throw CoreDownloadException(
         'Не удалось скачать файл: HTTP ${response.statusCode}',

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_sing_box/flutter_sing_box.dart' as singbox_plugin;
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
@@ -13,6 +14,7 @@ import '../core/models/app_settings.dart';
 import '../core/models/engine.dart';
 import '../core/models/lan_client.dart';
 import '../core/models/proxy_profile.dart';
+import '../platform/android_vpn.dart';
 import '../platform/elevation.dart';
 import '../platform/system_proxy.dart';
 import 'core_manager.dart';
@@ -41,15 +43,21 @@ class ConnectionController extends ChangeNotifier {
     required SettingsController settings,
     required SubscriptionController subscriptions,
     required SystemProxyService proxy,
-  })  : _cores = cores,
-        _engine = engine,
-        _storage = storage,
-        _logs = logs,
-        _settings = settings,
-        _subscriptions = subscriptions,
-        _proxy = proxy,
-        _engineState = engine.state {
+  }) : _cores = cores,
+       _engine = engine,
+       _storage = storage,
+       _logs = logs,
+       _settings = settings,
+       _subscriptions = subscriptions,
+       _proxy = proxy,
+       _android = AndroidVpnEngine(logs),
+       _engineState = engine.state {
     _engineSubscription = _engine.states.listen(_onEngineState);
+    if (AndroidVpnEngine.isSupported) {
+      _android.onStateChanged = _onAndroidState;
+      _android.onStatus = _onAndroidStatus;
+      _android.onLog = _onAndroidLog;
+    }
   }
 
   final CoreManager _cores;
@@ -59,6 +67,7 @@ class ConnectionController extends ChangeNotifier {
   final SettingsController _settings;
   final SubscriptionController _subscriptions;
   final SystemProxyService _proxy;
+  final AndroidVpnEngine _android;
   final http.Client _http = http.Client();
 
   late final StreamSubscription<EngineState> _engineSubscription;
@@ -121,7 +130,14 @@ class ConnectionController extends ChangeNotifier {
 
   Future<void> connect(ProxyProfile profile) async {
     if (_engineState.isBusy || _connecting) {
-      throw const ConnectionException('Ядро уже запускается или останавливается');
+      throw const ConnectionException(
+        'Ядро уже запускается или останавливается',
+      );
+    }
+
+    if (AndroidVpnEngine.isSupported) {
+      await _connectAndroid(profile);
+      return;
     }
 
     final settings = _settings.value;
@@ -278,10 +294,14 @@ class ConnectionController extends ChangeNotifier {
   Future<void> disconnect() async {
     _trafficTimer?.cancel();
     _trafficTimer = null;
-    try {
-      await _proxy.disable();
-    } catch (_) {}
-    await _engine.stop();
+    if (AndroidVpnEngine.isSupported) {
+      await _android.stop();
+    } else {
+      try {
+        await _proxy.disable();
+      } catch (_) {}
+      await _engine.stop();
+    }
     if (_activeProfile != null) {
       _logs.info('conn', 'Отключено');
     }
@@ -291,6 +311,100 @@ class ConnectionController extends ChangeNotifier {
     _download = 0;
     _lanClients.clear();
     notifyListeners();
+  }
+
+  Future<void> _connectAndroid(ProxyProfile profile) async {
+    if (profile.protocol == ProxyProtocol.openvpn ||
+        profile.protocol == ProxyProtocol.unknown) {
+      throw const ConnectionException(
+        'Этот протокол не поддерживается на Android. '
+        'Выберите VLESS, VMess, Trojan или Shadowsocks.',
+      );
+    }
+
+    final settings = _settings.value;
+    final config = SingboxConfigBuilder.build(
+      profile: profile,
+      settings: settings,
+      android: true,
+    );
+
+    _connecting = true;
+    _lastError = null;
+    _needsElevation = false;
+    _upload = 0;
+    _download = 0;
+    _connectedAt = null;
+    _activeProfile = profile;
+    _lanClients.clear();
+    notifyListeners();
+
+    try {
+      await _android.start(config: config, name: profile.name);
+      _connectedAt = DateTime.now();
+      _logs.info(
+        'conn',
+        'Подключено: ${profile.name} · ${profile.endpoint} · sing-box',
+      );
+    } catch (error) {
+      _lastError = error.toString();
+      await _safeCleanup();
+      _activeProfile = null;
+      rethrow;
+    } finally {
+      _connecting = false;
+      notifyListeners();
+    }
+  }
+
+  void _onAndroidState(singbox_plugin.ProxyState state) {
+    if (state is singbox_plugin.ProxyStarting) {
+      _engineState = const EngineState(
+        type: EngineType.singbox,
+        status: EngineStatus.starting,
+      );
+    } else if (state is singbox_plugin.ProxyStarted) {
+      _engineState = EngineState(
+        type: EngineType.singbox,
+        status: EngineStatus.running,
+        startedAt: DateTime.now(),
+      );
+    } else if (state is singbox_plugin.ProxyStopping) {
+      _engineState = const EngineState(
+        type: EngineType.singbox,
+        status: EngineStatus.stopping,
+      );
+    } else if (state is singbox_plugin.ProxyStopped) {
+      final error = state.errMessage;
+      _engineState = EngineState(
+        type: EngineType.singbox,
+        status: error == null ? EngineStatus.stopped : EngineStatus.error,
+        message: error,
+      );
+      _activeProfile = null;
+      _connectedAt = null;
+      _upload = 0;
+      _download = 0;
+      _lanClients.clear();
+      if (error != null) _lastError = error;
+    }
+    notifyListeners();
+  }
+
+  void _onAndroidStatus(singbox_plugin.ClientStatus status) {
+    _upload = status.uplinkTotal;
+    _download = status.downlinkTotal;
+    notifyListeners();
+  }
+
+  void _onAndroidLog(String message, int level) {
+    if (level <= 2) {
+      _logs.error('core', message);
+    } else if (level == 3) {
+      _logs.warn('core', message);
+    } else {
+      _logs.info('core', message);
+    }
   }
 
   void _onEngineState(EngineState state) {
@@ -311,6 +425,10 @@ class ConnectionController extends ChangeNotifier {
     _trafficTimer?.cancel();
     _trafficTimer = null;
     _lanClients.clear();
+    if (AndroidVpnEngine.isSupported) {
+      await _android.stop();
+      return;
+    }
     try {
       await _proxy.disable();
     } catch (_) {}
@@ -365,11 +483,12 @@ class ConnectionController extends ChangeNotifier {
       aggregate.upload += (item['upload'] as num?)?.toInt() ?? 0;
       aggregate.download += (item['download'] as num?)?.toInt() ?? 0;
 
-      final host = (metadata['host'] ??
-              metadata['sniffHost'] ??
-              metadata['destinationIP'] ??
-              '')
-          .toString();
+      final host =
+          (metadata['host'] ??
+                  metadata['sniffHost'] ??
+                  metadata['destinationIP'] ??
+                  '')
+              .toString();
       if (host.isNotEmpty && !aggregate.hosts.contains(host)) {
         aggregate.hosts.add(host);
       }
@@ -404,6 +523,7 @@ class ConnectionController extends ChangeNotifier {
   void dispose() {
     _trafficTimer?.cancel();
     _engineSubscription.cancel();
+    unawaited(_android.dispose());
     _http.close();
     super.dispose();
   }

@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/models/subscription.dart';
 import '../../core/utils/byte_format.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/connection_controller.dart';
 import '../../services/settings_controller.dart';
 import '../../services/subscription_controller.dart';
@@ -28,14 +29,18 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
     if (duplicates > 0) {
       showAppSnack(
         context,
-        'Добавлено серверов: ${subscription.profiles.length}. '
-        'С одинаковым IP: $duplicates',
+        context.tr(
+          'Добавлено серверов: {count}. С одинаковым IP: {duplicates}',
+          {'count': subscription.profiles.length, 'duplicates': duplicates},
+        ),
         warning: true,
       );
     } else {
       showAppSnack(
         context,
-        'Добавлено серверов: ${subscription.profiles.length}',
+        context.tr('Добавлено серверов: {count}', {
+          'count': subscription.profiles.length,
+        }),
       );
     }
   }
@@ -50,11 +55,13 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       if (duplicates > 0) {
         showAppSnack(
           context,
-          'Подписка обновлена. Серверов с одинаковым IP: $duplicates',
+          context.tr('Подписка обновлена. Серверов с одинаковым IP: {count}', {
+            'count': duplicates,
+          }),
           warning: true,
         );
       } else {
-        showAppSnack(context, 'Подписка обновлена');
+        showAppSnack(context, context.tr('Подписка обновлена'));
       }
     } catch (error) {
       if (mounted) showAppSnack(context, error.toString(), error: true);
@@ -66,9 +73,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
   Future<void> _delete(Subscription subscription) async {
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Удалить подписку?',
-      message:
-          '«${subscription.displayName}» и ${subscription.profiles.length} серверов будут удалены.',
+      title: context.tr('Удалить подписку?'),
+      message: context.tr('«{name}» и {count} серверов будут удалены.', {
+        'name': subscription.displayName,
+        'count': subscription.profiles.length,
+      }),
     );
     if (!confirmed || !mounted) return;
 
@@ -80,7 +89,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
       await connection.disconnect();
     }
     await controller.remove(subscription.id);
-    if (mounted) showAppSnack(context, 'Подписка удалена');
+    if (mounted) showAppSnack(context, context.tr('Подписка удалена'));
   }
 
   Future<void> _openUrl(String? url) async {
@@ -107,14 +116,21 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         Padding(
           padding: const EdgeInsets.fromLTRB(28, 28, 28, 16),
           child: PageHeader(
-            title: 'Подписки',
-            subtitle:
-                '${items.length} подписок · ${subscriptions.allProfiles.length} серверов',
+            title: context.tr('Подписки'),
+            subtitle: context.tr(
+              '{subscriptions} подписок · {servers} серверов',
+              {
+                'subscriptions': items.length,
+                'servers': subscriptions.allProfiles.length,
+              },
+            ),
             actions: [
               if (emulation != null)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: scheme.tertiaryContainer,
                     borderRadius: BorderRadius.circular(12),
@@ -122,8 +138,11 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.smart_toy_outlined,
-                          size: 16, color: scheme.onTertiaryContainer),
+                      Icon(
+                        Icons.smart_toy_outlined,
+                        size: 16,
+                        color: scheme.onTertiaryContainer,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         emulation.name,
@@ -136,13 +155,16 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                   ),
                 ),
               IconButton(
-                tooltip: 'Обновить все',
+                tooltip: context.tr('Обновить все'),
                 onPressed: subscriptions.isBusy
                     ? null
                     : () async {
                         await subscriptions.refreshAll();
                         if (context.mounted) {
-                          showAppSnack(context, 'Подписки обновлены');
+                          showAppSnack(
+                            context,
+                            context.tr('Подписки обновлены'),
+                          );
                         }
                       },
                 icon: subscriptions.isBusy
@@ -156,7 +178,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               FilledButton.icon(
                 onPressed: subscriptions.isBusy ? null : _add,
                 icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('Добавить'),
+                label: Text(context.tr('Добавить')),
               ),
             ],
           ),
@@ -165,14 +187,15 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           child: items.isEmpty
               ? EmptyState(
                   icon: Icons.rss_feed_rounded,
-                  title: 'Пока нет подписок',
-                  message:
-                      'Вставьте ссылку Remnawave — IVPN сам определит формат '
-                      'и отправит HWID при необходимости.',
+                  title: context.tr('Пока нет подписок'),
+                  message: context.tr(
+                    'Вставьте ссылку Remnawave — IVPN сам определит формат '
+                    'и отправит HWID при необходимости.',
+                  ),
                   action: FilledButton.icon(
                     onPressed: _add,
                     icon: const Icon(Icons.add_rounded),
-                    label: const Text('Добавить подписку'),
+                    label: Text(context.tr('Добавить подписку')),
                   ),
                 )
               : ListView(
@@ -234,16 +257,18 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                       subscription.displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subscription.url,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: scheme.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -251,7 +276,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               if ((subscription.webPageUrl ?? '').isNotEmpty)
                 TextButton(
                   onPressed: () => _openUrl(subscription.webPageUrl),
-                  child: const Text('Открыть'),
+                  child: Text(context.tr('Открыть')),
                 ),
             ],
           ),
@@ -266,14 +291,18 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.campaign_outlined,
-                      size: 18, color: scheme.onSecondaryContainer),
+                  Icon(
+                    Icons.campaign_outlined,
+                    size: 18,
+                    color: scheme.onSecondaryContainer,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       subscription.announce!,
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: scheme.onSecondaryContainer),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSecondaryContainer,
+                      ),
                     ),
                   ),
                 ],
@@ -284,26 +313,31 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
           if (usage == null)
             Row(
               children: [
-                Icon(Icons.data_usage_rounded,
-                    size: 18, color: scheme.onSurfaceVariant),
+                Icon(
+                  Icons.data_usage_rounded,
+                  size: 18,
+                  color: scheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 8),
                 Text(
-                  'Сервер не передал данные о трафике',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: scheme.onSurfaceVariant),
+                  context.tr('Сервер не передал данные о трафике'),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             )
           else ...[
             Row(
               children: [
-                Text('Трафик', style: theme.textTheme.bodyMedium),
+                Text(context.tr('Трафик'), style: theme.textTheme.bodyMedium),
                 const Spacer(),
                 Text(
                   '${formatBytes(usage.used)} / '
-                  '${usage.hasTotal ? formatBytes(usage.total) : 'Безлимит'}',
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                  '${usage.hasTotal ? formatBytes(usage.total) : context.tr('Безлимит')}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -322,20 +356,32 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               children: [
                 Text(
                   usage.hasTotal
-                      ? 'Осталось ${formatBytes((usage.total - usage.used).clamp(0, usage.total))}'
-                      : 'Безлимитный трафик',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: scheme.onSurfaceVariant),
+                      ? context.tr('Осталось {value}', {
+                          'value': formatBytes(
+                            (usage.total - usage.used).clamp(0, usage.total),
+                          ),
+                        })
+                      : context.tr('Безлимитный трафик'),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
                 const Spacer(),
                 if (usage.expireDate != null) ...[
-                  Icon(Icons.event_outlined,
-                      size: 14, color: scheme.onSurfaceVariant),
+                  Icon(
+                    Icons.event_outlined,
+                    size: 14,
+                    color: scheme.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     usage.isExpired
-                        ? 'Истекла ${formatDate(usage.expireDate)}'
-                        : 'до ${formatDate(usage.expireDate)}',
+                        ? context.tr('Истекла {date}', {
+                            'date': formatDate(usage.expireDate),
+                          })
+                        : context.tr('до {date}', {
+                            'date': formatDate(usage.expireDate),
+                          }),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: usage.isExpired
                           ? scheme.error
@@ -353,18 +399,16 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             children: [
               _chip(
                 context,
-                '${subscription.profiles.length} серверов',
+                context.tr('{count} серверов', {
+                  'count': subscription.profiles.length,
+                }),
                 scheme: scheme,
               ),
-              _chip(
-                context,
-                subscription.format,
-                scheme: scheme,
-              ),
+              _chip(context, subscription.format, scheme: scheme),
               if (subscription.hwidActive)
                 _chip(
                   context,
-                  'HWID активен',
+                  context.tr('HWID активен'),
                   scheme: scheme,
                   icon: Icons.verified_user_outlined,
                   background: scheme.primaryContainer,
@@ -373,7 +417,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               if (subscription.hwidLimitReached)
                 _chip(
                   context,
-                  'Лимит устройств',
+                  context.tr('Лимит устройств'),
                   scheme: scheme,
                   icon: Icons.devices_other_rounded,
                   background: scheme.errorContainer,
@@ -382,7 +426,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
               if (subscription.hwidNotSupported)
                 _chip(
                   context,
-                  'HWID не отправлен',
+                  context.tr('HWID не отправлен'),
                   scheme: scheme,
                   icon: Icons.warning_amber_rounded,
                   background: scheme.tertiaryContainer,
@@ -396,7 +440,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                       .join('\n'),
                   child: _chip(
                     context,
-                    '$duplicates дублей IP',
+                    context.tr('{count} дублей IP', {'count': duplicates}),
                     scheme: scheme,
                     icon: Icons.error_outline_rounded,
                     background: scheme.error,
@@ -410,14 +454,18 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.error_outline_rounded,
-                    size: 16, color: scheme.error),
+                Icon(
+                  Icons.error_outline_rounded,
+                  size: 16,
+                  color: scheme.error,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    subscription.error!,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: scheme.error),
+                    context.tr(subscription.error!),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.error,
+                    ),
                   ),
                 ),
               ],
@@ -435,22 +483,28 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('Обновить'),
+                label: Text(context.tr('Обновить')),
               ),
               const SizedBox(width: 8),
               TextButton.icon(
                 style: TextButton.styleFrom(foregroundColor: scheme.error),
                 onPressed: () => _delete(subscription),
                 icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                label: const Text('Удалить'),
+                label: Text(context.tr('Удалить')),
               ),
               const Spacer(),
               Text(
                 subscription.updatedAt == null
-                    ? 'Не обновлялась'
-                    : 'Обновлено ${formatRelative(subscription.updatedAt)}',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: scheme.onSurfaceVariant),
+                    ? context.tr('Не обновлялась')
+                    : context.tr('Обновлено {time}', {
+                        'time': formatRelative(
+                          subscription.updatedAt,
+                          languageCode: context.languageCode,
+                        ),
+                      }),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -477,15 +531,13 @@ class _SubscriptionsPageState extends State<SubscriptionsPage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon,
-                size: 13, color: foreground ?? scheme.onSurfaceVariant),
+            Icon(icon, size: 13, color: foreground ?? scheme.onSurfaceVariant),
             const SizedBox(width: 5),
           ],
           Text(
             label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: foreground ?? scheme.onSurfaceVariant,
-                ),
+            style: Theme.of(context).textTheme.labelSmall
+                ?.copyWith(color: foreground ?? scheme.onSurfaceVariant),
           ),
         ],
       ),

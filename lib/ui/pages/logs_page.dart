@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/models/log_entry.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/log_service.dart';
 import '../../services/storage_service.dart';
 import '../utils/ui_helpers.dart';
@@ -42,8 +43,9 @@ class _LogsPageState extends State<LogsPage> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final storage = context.read<StorageService>();
-    final filtered =
-        _entries.where((entry) => _levels.contains(entry.level)).toList();
+    final filtered = _entries
+        .where((entry) => _levels.contains(entry.level))
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -51,11 +53,11 @@ class _LogsPageState extends State<LogsPage> {
         Padding(
           padding: const EdgeInsets.fromLTRB(28, 28, 28, 12),
           child: PageHeader(
-            title: 'Логи',
-            subtitle: '${filtered.length} записей',
+            title: context.tr('Логи'),
+            subtitle: context.tr('{count} записей', {'count': filtered.length}),
             actions: [
               IconButton(
-                tooltip: 'Открыть папку логов',
+                tooltip: context.tr('Открыть папку логов'),
                 onPressed: () {
                   try {
                     Process.run('explorer', [storage.logsDir.path]);
@@ -64,7 +66,7 @@ class _LogsPageState extends State<LogsPage> {
                 icon: const Icon(Icons.folder_open_rounded),
               ),
               IconButton(
-                tooltip: 'Очистить',
+                tooltip: context.tr('Очистить'),
                 onPressed: () {
                   _logs.clear();
                   setState(_entries.clear);
@@ -110,16 +112,19 @@ class _LogsPageState extends State<LogsPage> {
             child: filtered.isEmpty
                 ? Center(
                     child: Text(
-                      'Логи пусты',
-                      style: theme.textTheme.bodyMedium
-                          ?.copyWith(color: scheme.onSurfaceVariant),
+                      context.tr('Логи пусты'),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   )
                 : SelectionArea(
                     child: ListView.builder(
                       reverse: true,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       itemCount: filtered.length,
                       itemBuilder: (context, index) {
                         final entry = filtered[filtered.length - 1 - index];
@@ -162,9 +167,9 @@ class _LogsPageState extends State<LogsPage> {
   }
 
   Color _colorFor(LogLevel level, ColorScheme scheme) => switch (level) {
-        LogLevel.debug => scheme.onSurfaceVariant.withValues(alpha: 0.7),
-        LogLevel.info => scheme.onSurface,
-        LogLevel.warn => scheme.tertiary,
-        LogLevel.error => scheme.error,
-      };
+    LogLevel.debug => scheme.onSurfaceVariant.withValues(alpha: 0.7),
+    LogLevel.info => scheme.onSurface,
+    LogLevel.warn => scheme.tertiary,
+    LogLevel.error => scheme.error,
+  };
 }

@@ -5,6 +5,7 @@ import 'package:ivpn/core/models/app_settings.dart';
 import 'package:ivpn/core/models/proxy_profile.dart';
 import 'package:ivpn/core/models/subscription.dart';
 import 'package:ivpn/core/utils/byte_format.dart';
+import 'package:ivpn/l10n/app_localizations.dart';
 
 const _profile = ProxyProfile(
   id: 'test',
@@ -95,5 +96,29 @@ void main() {
     expect(usage.used, 3072);
     expect(usage.hasTotal, isTrue);
     expect(usage.ratio, closeTo(3072 / 10485760, 1e-9));
+  });
+
+  test('localization translates and fills placeholders', () {
+    expect(AppLocalizations.translate('en', 'Серверы'), 'Servers');
+    expect(
+      AppLocalizations.translate('de', '{count} серверов', {'count': 3}),
+      '3 Server',
+    );
+    expect(
+      AppLocalizations.translate('ru', '{count} серверов', {'count': 3}),
+      '3 серверов',
+    );
+  });
+
+  test('unknown language falls back to English', () {
+    expect(AppLocalizations.translate('fr', 'Настройки'), 'Settings');
+  });
+
+  test('formatRelative respects the language code', () {
+    final now = DateTime.now();
+    expect(formatRelative(null, languageCode: 'en'), 'never');
+    expect(formatRelative(now, languageCode: 'en'), 'just now');
+    expect(formatRelative(now, languageCode: 'de'), 'gerade eben');
+    expect(formatRelative(now), 'только что');
   });
 }

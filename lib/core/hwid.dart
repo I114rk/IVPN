@@ -10,6 +10,8 @@ String deriveHwid(List<String> components) {
       .where((value) => value.isNotEmpty)
       .join('|');
   final digest = sha256.convert(utf8.encode(normalized)).bytes;
-  final hex = digest.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
+  final hex = digest
+      .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+      .join();
   return hex.substring(0, 32);
 }

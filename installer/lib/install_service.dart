@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -11,6 +11,10 @@ import 'package:ivpn/core/utils/ids.dart';
 import 'package:ivpn/platform/device_info.dart';
 import 'package:ivpn/services/hwid_service.dart';
 import 'package:path/path.dart' as p;
+
+import 'l10n.dart';
+
+const _appVersion = String.fromEnvironment('APP_VERSION', defaultValue: '1.0.0');
 
 class InstallException implements Exception {
   final String message;
@@ -73,25 +77,25 @@ class InstallService {
     final installDir = Directory(options.installDir);
     await installDir.create(recursive: true);
 
-    onProgress?.call('Распаковка файлов…', 0.02);
+    onProgress?.call(tr('Распаковка файлов…'), 0.02);
     await _extract(payload, installDir, onProgress);
 
     final executable = File(p.join(installDir.path, 'ivpn.exe'));
     if (!await executable.exists()) {
-      throw const InstallException('В установочном пакете не найден ivpn.exe');
+      throw InstallException(tr('В установочном пакете не найден ivpn.exe'));
     }
 
     var serversAdded = 0;
     String? subscriptionTitle;
     if (options.subscriptionUrl.trim().isNotEmpty) {
-      onProgress?.call('Добавление подписки…', 0.82);
+      onProgress?.call(tr('Добавление подписки…'), 0.82);
       final subscription = await _fetchSubscription(options);
       await _mergeState(subscription);
       serversAdded = subscription.profiles.length;
       subscriptionTitle = subscription.displayName;
     }
 
-    onProgress?.call('Создание ярлыков…', 0.9);
+    onProgress?.call(tr('Создание ярлыков…'), 0.9);
     if (options.desktopShortcut) {
       await _createShortcut(
         p.join(await _desktopDirectory(), 'IVPN.lnk'),
@@ -117,12 +121,12 @@ class InstallService {
       }
     }
 
-    onProgress?.call('Регистрация в системе…', 0.96);
+    onProgress?.call(tr('Регистрация в системе…'), 0.96);
     await _writeUninstaller(installDir.path);
     await _registerUninstall(installDir.path, executable.path);
 
     if (options.launchAfterInstall) {
-      onProgress?.call('Запуск IVPN…', 0.99);
+      onProgress?.call(tr('Запуск IVPN…'), 0.99);
       try {
         await Process.start(
           executable.path,
@@ -133,7 +137,7 @@ class InstallService {
       } catch (_) {}
     }
 
-    onProgress?.call('Готово', 1);
+    onProgress?.call(tr('Готово'), 1);
     return InstallResult(
       executablePath: executable.path,
       serversAdded: serversAdded,
@@ -150,11 +154,11 @@ class InstallService {
     try {
       archive = ZipDecoder().decodeBytes(payload);
     } catch (_) {
-      throw const InstallException('Повреждён установочный пакет');
+      throw InstallException(tr('Повреждён установочный пакет'));
     }
     final files = archive.where((file) => file.isFile).toList();
     if (files.isEmpty) {
-      throw const InstallException('Установочный пакет пуст');
+      throw InstallException(tr('Установочный пакет пуст'));
     }
     var index = 0;
     final targetPath = p.normalize(p.absolute(target.path));
@@ -164,16 +168,14 @@ class InstallService {
         p.absolute(p.joinAll([targetPath, ...relative.split('/')])),
       );
       if (p.isAbsolute(relative) || !p.isWithin(targetPath, destinationPath)) {
-        throw const InstallException(
-          'Установочный пакет содержит неверный путь',
-        );
+        throw InstallException(tr('Установочный пакет содержит неверный путь'));
       }
       final destination = File(destinationPath);
       await destination.parent.create(recursive: true);
       await destination.writeAsBytes(file.content, flush: false);
       index++;
       onProgress?.call(
-        'Распаковка: ${p.basename(relative)}',
+        tr('Распаковка: {file}', {'file': p.basename(relative)}),
         0.05 + 0.72 * index / files.length,
       );
     }
@@ -218,7 +220,9 @@ class InstallService {
     } on InstallException {
       rethrow;
     } catch (error) {
-      throw InstallException('Не удалось добавить подписку: $error');
+      throw InstallException(
+        tr('Не удалось добавить подписку: {error}', {'error': error}),
+      );
     }
   }
 
@@ -325,7 +329,7 @@ Remove-Item -LiteralPath '${quote(installDir)}' -Recurse -Force
         'powershell -NoProfile -ExecutionPolicy Bypass -File "$uninstaller"';
     final entries = <List<String>>[
       ['DisplayName', 'IVPN'],
-      ['DisplayVersion', '1.0.0'],
+      ['DisplayVersion', _appVersion],
       ['Publisher', 'IVPN'],
       ['InstallLocation', installDir],
       ['DisplayIcon', executable],
@@ -354,7 +358,7 @@ Remove-Item -LiteralPath '${quote(installDir)}' -Recurse -Force
   static String _hostOf(String url) {
     final uri = Uri.tryParse(url);
     final host = uri?.host ?? '';
-    return host.isEmpty ? 'Подписка' : host;
+    return host.isEmpty ? tr('Подписка') : host;
   }
 
   void dispose() => _client.close();

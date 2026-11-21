@@ -47,7 +47,8 @@ class MihomoParser {
     final port = _int(map['port'], _defaultPort(protocol));
     final name = (map['name'] ?? '$server:$port').toString();
 
-    final wsOpts = (map['ws-opts'] as Map?)?.cast<Object?, Object?>() ?? const {};
+    final wsOpts =
+        (map['ws-opts'] as Map?)?.cast<Object?, Object?>() ?? const {};
     final grpcOpts =
         (map['grpc-opts'] as Map?)?.cast<Object?, Object?>() ?? const {};
     final realityOpts =
@@ -102,7 +103,9 @@ class MihomoParser {
       sni: (map['servername'] ?? map['sni'] ?? '').toString(),
       alpn: _stringList(map['alpn']).join(','),
       fingerprint: (map['client-fingerprint'] ?? '').toString(),
-      tls: tls || protocol == ProxyProtocol.hysteria2 ||
+      tls:
+          tls ||
+          protocol == ProxyProtocol.hysteria2 ||
           protocol == ProxyProtocol.tuic,
       reality: realityOpts.isNotEmpty,
       realityPublicKey: (realityOpts['public-key'] ?? '').toString(),
@@ -110,10 +113,9 @@ class MihomoParser {
       allowInsecure: map['skip-cert-verify'] == true,
       plugin: (map['plugin'] ?? '').toString(),
       pluginOpts: (map['plugin-opts'] is Map)
-          ? (map['plugin-opts'] as Map)
-              .entries
-              .map((entry) => '${entry.key}=${entry.value}')
-              .join(';')
+          ? (map['plugin-opts'] as Map).entries
+                .map((entry) => '${entry.key}=${entry.value}')
+                .join(';')
           : null,
       subscriptionId: subscriptionId,
       subscriptionName: subscriptionName,
@@ -122,14 +124,14 @@ class MihomoParser {
   }
 
   static int _defaultPort(ProxyProtocol protocol) => switch (protocol) {
-        ProxyProtocol.hysteria2 => 443,
-        ProxyProtocol.tuic => 443,
-        ProxyProtocol.wireguard => 51820,
-        ProxyProtocol.socks => 1080,
-        ProxyProtocol.http => 8080,
-        ProxyProtocol.shadowsocks => 8388,
-        _ => 443,
-      };
+    ProxyProtocol.hysteria2 => 443,
+    ProxyProtocol.tuic => 443,
+    ProxyProtocol.wireguard => 51820,
+    ProxyProtocol.socks => 1080,
+    ProxyProtocol.http => 8080,
+    ProxyProtocol.shadowsocks => 8388,
+    _ => 443,
+  };
 
   static int _int(Object? value, int fallback) {
     if (value is int) return value;

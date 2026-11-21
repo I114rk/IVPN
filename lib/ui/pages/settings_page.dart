@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../core/models/app_settings.dart';
 import '../../core/models/client_emulation.dart';
 import '../../core/utils/network_info.dart';
+import '../../l10n/app_localizations.dart';
 import '../../platform/elevation.dart';
 import '../../services/core_manager.dart';
 import '../../services/hwid_service.dart';
@@ -41,6 +42,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _port.text = '${settings.mixedPort}';
     _customUa.text = settings.customUserAgent ?? '';
     _openvpn.text = settings.openvpnPath ?? '';
+    if (Platform.isAndroid) return;
     _loadCores();
     _resolveOpenVpn();
     _loadLanIp();
@@ -56,7 +58,9 @@ class _SettingsPageState extends State<SettingsPage> {
     if (host == null) return;
     final port = context.read<SettingsController>().value.mixedPort;
     await Clipboard.setData(ClipboardData(text: '$host:$port'));
-    if (mounted) showAppSnack(context, 'Адрес прокси скопирован');
+    if (mounted) {
+      showAppSnack(context, context.tr('Адрес прокси скопирован'));
+    }
   }
 
   Future<void> _openFirewallPorts() async {
@@ -73,20 +77,25 @@ class _SettingsPageState extends State<SettingsPage> {
     final script =
         "Start-Process powershell -Verb RunAs -ArgumentList '-NoProfile','-Command',\"$inner\"";
     try {
-      final result = await Process.run(
-        'powershell',
-        ['-NoProfile', '-Command', script],
-      );
+      final result = await Process.run('powershell', [
+        '-NoProfile',
+        '-Command',
+        script,
+      ]);
       if (!mounted) return;
       if (result.exitCode == 0) {
         showAppSnack(
           context,
-          'Подтвердите запрос UAC, чтобы открыть порты в брандмауэре',
+          context.tr(
+            'Подтвердите запрос UAC, чтобы открыть порты в брандмауэре',
+          ),
         );
       } else {
         showAppSnack(
           context,
-          'Не удалось открыть порты: ${result.stderr}',
+          context.tr('Не удалось открыть порты: {error}', {
+            'error': result.stderr,
+          }),
           error: true,
         );
       }
@@ -128,7 +137,9 @@ class _SettingsPageState extends State<SettingsPage> {
           break;
       }
       await _loadCores();
-      if (mounted) showAppSnack(context, '$name установлен');
+      if (mounted) {
+        showAppSnack(context, context.tr('{name} установлен', {'name': name}));
+      }
     } catch (error) {
       if (mounted) showAppSnack(context, error.toString(), error: true);
     } finally {
@@ -138,8 +149,9 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _resolveOpenVpn() async {
     setState(() => _openvpnBusy = true);
-    final found =
-        await context.read<CoreManager>().findOpenVpn(_openvpn.text.trim());
+    final found = await context.read<CoreManager>().findOpenVpn(
+      _openvpn.text.trim(),
+    );
     if (mounted) {
       setState(() {
         _openvpnFound = found;
@@ -149,26 +161,33 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _applyOpenVpn() async {
-    await context
-        .read<SettingsController>()
-        .patch(openvpnPath: _openvpn.text.trim());
+    await context.read<SettingsController>().patch(
+      openvpnPath: _openvpn.text.trim(),
+    );
     await _resolveOpenVpn();
   }
 
   void _applyPort() {
     final value = int.tryParse(_port.text.trim());
     if (value == null || value < 1024 || value > 65535) {
-      showAppSnack(context, 'Порт должен быть от 1024 до 65535', error: true);
+      showAppSnack(
+        context,
+        context.tr('Порт должен быть от 1024 до 65535'),
+        error: true,
+      );
       return;
     }
     context.read<SettingsController>().patch(mixedPort: value);
-    showAppSnack(context, 'Порт изменён на $value');
+    showAppSnack(
+      context,
+      context.tr('Порт изменён на {port}', {'port': value}),
+    );
   }
 
   Future<void> _copyHwid() async {
     final value = await context.read<HwidService>().value;
     await Clipboard.setData(ClipboardData(text: value));
-    if (mounted) showAppSnack(context, 'HWID скопирован');
+    if (mounted) showAppSnack(context, context.tr('HWID скопирован'));
   }
 
   Future<void> _chooseEmulation() async {
@@ -177,19 +196,24 @@ class _SettingsPageState extends State<SettingsPage> {
     final settings = context.read<SettingsController>();
     if (result.isEmpty) {
       await settings.patch(clearEmulation: true);
-      if (mounted) showAppSnack(context, 'Эмуляция отключена');
+      if (mounted) showAppSnack(context, context.tr('Эмуляция отключена'));
     } else {
       await settings.patch(emulatedClientId: result);
       final client = ClientEmulation.byId(result);
       if (mounted) {
-        showAppSnack(context, 'Включена эмуляция: ${client?.name ?? result}');
+        showAppSnack(
+          context,
+          context.tr('Включена эмуляция: {name}', {
+            'name': client?.name ?? result,
+          }),
+        );
       }
     }
   }
 
   Future<void> _disableEmulation() async {
     await context.read<SettingsController>().patch(clearEmulation: true);
-    if (mounted) showAppSnack(context, 'Эмуляция отключена');
+    if (mounted) showAppSnack(context, context.tr('Эмуляция отключена'));
   }
 
   @override
@@ -200,6 +224,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final settings = controller.value;
     final emulation = settings.emulation;
     final storage = context.read<StorageService>();
+    final isMobile = Platform.isAndroid;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(28, 28, 20, 28),
@@ -210,16 +235,57 @@ class _SettingsPageState extends State<SettingsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const PageHeader(
-                title: 'Настройки',
-                subtitle: 'Внешний вид, подключение, HWID и ядра',
+              PageHeader(
+                title: context.tr('Настройки'),
+                subtitle: context.tr('Внешний вид, подключение, HWID и ядра'),
               ),
               const SizedBox(height: 20),
               _section(
-                title: 'Внешний вид',
+                title: context.tr('Внешний вид'),
                 icon: Icons.palette_outlined,
                 children: [
-                  _label('Тема оформления'),
+                  _label(context.tr('Язык')),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      DropdownMenu<AppLanguage>(
+                        width: 280,
+                        initialSelection: settings.language,
+                        dropdownMenuEntries: [
+                          DropdownMenuEntry(
+                            value: AppLanguage.system,
+                            label: context.tr('Системный'),
+                          ),
+                          const DropdownMenuEntry(
+                            value: AppLanguage.ru,
+                            label: 'Русский',
+                          ),
+                          const DropdownMenuEntry(
+                            value: AppLanguage.en,
+                            label: 'English',
+                          ),
+                          const DropdownMenuEntry(
+                            value: AppLanguage.de,
+                            label: 'Deutsch',
+                          ),
+                        ],
+                        onSelected: (language) {
+                          if (language != null) {
+                            controller.patch(language: language);
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 14),
+                      Text(
+                        context.tr('Применяется сразу'),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  _label(context.tr('Тема оформления')),
                   const SizedBox(height: 8),
                   Align(
                     alignment: Alignment.centerLeft,
@@ -228,7 +294,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         for (final item in ThemePreference.values)
                           ButtonSegment(
                             value: item,
-                            label: Text(item.label),
+                            label: Text(context.tr(item.label)),
                           ),
                       ],
                       selected: {settings.theme},
@@ -237,16 +303,19 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Динамический цвет'),
-                    subtitle: const Text('Использовать акцентный цвет Windows'),
-                    value: settings.dynamicColor,
-                    onChanged: (value) =>
-                        controller.patch(dynamicColor: value),
-                  ),
+                  if (!isMobile)
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(context.tr('Динамический цвет')),
+                      subtitle: Text(
+                        context.tr('Использовать акцентный цвет Windows'),
+                      ),
+                      value: settings.dynamicColor,
+                      onChanged: (value) =>
+                          controller.patch(dynamicColor: value),
+                    ),
                   const SizedBox(height: 8),
-                  _label('Цветовая схема'),
+                  _label(context.tr('Цветовая схема')),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 10,
@@ -260,226 +329,290 @@ class _SettingsPageState extends State<SettingsPage> {
                           onTap: () => controller.patch(seedColor: value),
                           scheme: scheme,
                         ),
-                      ActionChip(
-                        avatar: Icon(
-                          Icons.auto_awesome_rounded,
-                          size: 16,
-                          color: settings.seedColor == null
-                              ? scheme.primary
-                              : scheme.onSurfaceVariant,
+                      if (!isMobile)
+                        ActionChip(
+                          avatar: Icon(
+                            Icons.auto_awesome_rounded,
+                            size: 16,
+                            color: settings.seedColor == null
+                                ? scheme.primary
+                                : scheme.onSurfaceVariant,
+                          ),
+                          label: Text(context.tr('Акцент Windows')),
+                          onPressed: () =>
+                              controller.patch(clearSeedColor: true),
                         ),
-                        label: const Text('Акцент Windows'),
-                        onPressed: () =>
-                            controller.patch(clearSeedColor: true),
-                      ),
                     ],
                   ),
                 ],
               ),
               _section(
-                title: 'Подключение',
+                title: context.tr('Подключение'),
                 icon: Icons.tune_rounded,
                 children: [
-                  _label('Режим'),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: SegmentedButton<ConnectionMode>(
-                      segments: const [
-                        ButtonSegment(
-                          value: ConnectionMode.tun,
-                          icon: Icon(Icons.vpn_lock_outlined, size: 18),
-                          label: Text('TUN'),
-                        ),
-                        ButtonSegment(
-                          value: ConnectionMode.proxy,
-                          icon: Icon(Icons.language_outlined, size: 18),
-                          label: Text('Proxy'),
-                        ),
-                      ],
-                      selected: {settings.mode},
-                      onSelectionChanged: (selection) =>
-                          controller.patch(mode: selection.first),
+                  if (!isMobile) ...[
+                    _label(context.tr('Режим')),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: SegmentedButton<ConnectionMode>(
+                        segments: const [
+                          ButtonSegment(
+                            value: ConnectionMode.tun,
+                            icon: Icon(Icons.vpn_lock_outlined, size: 18),
+                            label: Text('TUN'),
+                          ),
+                          ButtonSegment(
+                            value: ConnectionMode.proxy,
+                            icon: Icon(Icons.language_outlined, size: 18),
+                            label: Text('Proxy'),
+                          ),
+                        ],
+                        selected: {settings.mode},
+                        onSelectionChanged: (selection) =>
+                            controller.patch(mode: selection.first),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  _label('Ядро по умолчанию'),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: SegmentedButton<CoreEngine>(
-                      segments: const [
-                        ButtonSegment(
-                          value: CoreEngine.singbox,
-                          label: Text('Sing-box'),
-                        ),
-                        ButtonSegment(
-                          value: CoreEngine.xray,
-                          label: Text('Xray'),
-                        ),
-                        ButtonSegment(
-                          value: CoreEngine.openvpn,
-                          label: Text('OpenVPN'),
-                        ),
-                      ],
-                      selected: {settings.engine},
-                      onSelectionChanged: (selection) =>
-                          controller.patch(engine: selection.first),
+                    const SizedBox(height: 16),
+                    _label(context.tr('Ядро по умолчанию')),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: SegmentedButton<CoreEngine>(
+                        segments: const [
+                          ButtonSegment(
+                            value: CoreEngine.singbox,
+                            label: Text('Sing-box'),
+                          ),
+                          ButtonSegment(
+                            value: CoreEngine.xray,
+                            label: Text('Xray'),
+                          ),
+                          ButtonSegment(
+                            value: CoreEngine.openvpn,
+                            label: Text('OpenVPN'),
+                          ),
+                        ],
+                        selected: {settings.engine},
+                        onSelectionChanged: (selection) =>
+                            controller.patch(engine: selection.first),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: 200,
-                        child: TextField(
-                          controller: _port,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          onSubmitted: (_) => _applyPort(),
-                          decoration: InputDecoration(
-                            labelText: 'Порт',
-                            suffixIcon: IconButton(
-                              tooltip: 'Применить',
-                              onPressed: _applyPort,
-                              icon: const Icon(Icons.check_rounded, size: 18),
+                    const SizedBox(height: 16),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 200,
+                          child: TextField(
+                            controller: _port,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            onSubmitted: (_) => _applyPort(),
+                            decoration: InputDecoration(
+                              labelText: context.tr('Порт'),
+                              suffixIcon: IconButton(
+                                tooltip: context.tr('Применить'),
+                                onPressed: _applyPort,
+                                icon: const Icon(Icons.check_rounded, size: 18),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 10),
-                          child: Text(
-                            'Mixed-порт для Proxy-режима. Xray использует '
-                            '${settings.mixedPort} (SOCKS) и '
-                            '${settings.mixedPort + 1} (HTTP).',
-                            style: theme.textTheme.bodySmall
-                                ?.copyWith(color: scheme.onSurfaceVariant),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 10),
+                            child: Text(
+                              context.tr(
+                                'Mixed-порт для Proxy-режима. Xray использует {socks} (SOCKS) и {http} (HTTP).',
+                                {
+                                  'socks': settings.mixedPort,
+                                  'http': settings.mixedPort + 1,
+                                },
+                              ),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _label('TUN-стек'),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(value: 'system', label: Text('System')),
-                        ButtonSegment(value: 'gvisor', label: Text('GVisor')),
-                        ButtonSegment(value: 'mixed', label: Text('Mixed')),
                       ],
-                      selected: {settings.tunStack},
-                      onSelectionChanged: (selection) =>
-                          controller.patch(tunStack: selection.first),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Системный прокси'),
-                    subtitle: const Text(
-                      'Автоматически включать прокси Windows в Proxy-режиме',
-                    ),
-                    value: settings.setSystemProxy,
-                    onChanged: (value) =>
-                        controller.patch(setSystemProxy: value),
-                  ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Доступ из локальной сети'),
-                    subtitle: const Text(
-                      'Слушать прокси на всех интерфейсах (0.0.0.0). '
-                      'Применяется после переподключения',
-                    ),
-                    value: settings.allowLan,
-                    onChanged: (value) => controller.patch(allowLan: value),
-                  ),
-                  if (settings.allowLan) ...[
+                    const SizedBox(height: 16),
+                    _label(context.tr('TUN-стек')),
                     const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: SegmentedButton<String>(
+                        segments: const [
+                          ButtonSegment(value: 'system', label: Text('System')),
+                          ButtonSegment(value: 'gvisor', label: Text('GVisor')),
+                          ButtonSegment(value: 'mixed', label: Text('Mixed')),
+                        ],
+                        selected: {settings.tunStack},
+                        onSelectionChanged: (selection) =>
+                            controller.patch(tunStack: selection.first),
+                      ),
+                    ),
+                  ],
+                  if (isMobile)
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: scheme.surfaceContainerHighest
-                            .withValues(alpha: 0.45),
+                        color: scheme.surfaceContainerHighest.withValues(
+                          alpha: 0.45,
+                        ),
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                      child: Row(
                         children: [
-                          Row(
-                            children: [
-                              Icon(Icons.devices_rounded,
-                                  size: 18, color: scheme.primary),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  settings.mode == ConnectionMode.proxy
-                                      ? 'Другие устройства могут использовать '
-                                          'IVPN как прокси'
-                                      : 'В TUN-режиме прокси-порт не '
-                                          'открывается — включите Proxy',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          Icon(
+                            Icons.vpn_lock_rounded,
+                            size: 20,
+                            color: scheme.primary,
                           ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: SelectableText(
-                                  _lanIp == null
-                                      ? 'Определение адреса…'
-                                      : '$_lanIp:${settings.mixedPort}',
-                                  style: const TextStyle(
-                                    fontFamily: 'Consolas',
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              context.tr(
+                                'На Android используется TUN через VpnService '
+                                'и встроенное ядро sing-box. Режим Proxy '
+                                'и выбор ядра недоступны.',
                               ),
-                              IconButton(
-                                tooltip: 'Копировать адрес',
-                                onPressed:
-                                    _lanIp == null ? null : _copyLanAddress,
-                                icon: const Icon(Icons.copy_rounded, size: 18),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
                               ),
-                              TextButton.icon(
-                                onPressed: _openFirewallPorts,
-                                icon: const Icon(Icons.security_rounded,
-                                    size: 18),
-                                label: const Text('Открыть порты'),
-                              ),
-                            ],
-                          ),
-                          Text(
-                            'SOCKS/HTTP на одном порту (sing-box). '
-                            'Xray: SOCKS ${settings.mixedPort}, '
-                            'HTTP ${settings.mixedPort + 1}. '
-                            'Может потребоваться разрешение брандмауэра.',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
                             ),
                           ),
                         ],
                       ),
                     ),
+                  const SizedBox(height: 8),
+                  if (!isMobile)
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(context.tr('Системный прокси')),
+                      subtitle: Text(
+                        context.tr(
+                          'Автоматически включать прокси Windows в Proxy-режиме',
+                        ),
+                      ),
+                      value: settings.setSystemProxy,
+                      onChanged: (value) =>
+                          controller.patch(setSystemProxy: value),
+                    ),
+                  if (!isMobile) ...[
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(context.tr('Доступ из локальной сети')),
+                      subtitle: Text(
+                        context.tr(
+                          'Слушать прокси на всех интерфейсах (0.0.0.0). '
+                          'Применяется после переподключения',
+                        ),
+                      ),
+                      value: settings.allowLan,
+                      onChanged: (value) => controller.patch(allowLan: value),
+                    ),
+                    if (settings.allowLan) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerHighest.withValues(
+                            alpha: 0.45,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.devices_rounded,
+                                  size: 18,
+                                  color: scheme.primary,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    settings.mode == ConnectionMode.proxy
+                                        ? context.tr(
+                                            'Другие устройства могут использовать IVPN как прокси',
+                                          )
+                                        : context.tr(
+                                            'В TUN-режиме прокси-порт не открывается — включите Proxy',
+                                          ),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: SelectableText(
+                                    _lanIp == null
+                                        ? context.tr('Определение…')
+                                        : '$_lanIp:${settings.mixedPort}',
+                                    style: const TextStyle(
+                                      fontFamily: 'Consolas',
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: context.tr('Копировать адрес'),
+                                  onPressed: _lanIp == null
+                                      ? null
+                                      : _copyLanAddress,
+                                  icon: const Icon(
+                                    Icons.copy_rounded,
+                                    size: 18,
+                                  ),
+                                ),
+                                TextButton.icon(
+                                  onPressed: _openFirewallPorts,
+                                  icon: const Icon(
+                                    Icons.security_rounded,
+                                    size: 18,
+                                  ),
+                                  label: Text(context.tr('Открыть порты')),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              context.tr(
+                                'SOCKS/HTTP на одном порту (sing-box). Xray: SOCKS {socks}, HTTP {http}. Может потребоваться разрешение брандмауэра.',
+                                {
+                                  'socks': settings.mixedPort,
+                                  'http': settings.mixedPort + 1,
+                                },
+                              ),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Автоподключение'),
-                    subtitle: const Text(
-                      'Подключаться к выбранному серверу при запуске IVPN',
+                    title: Text(context.tr('Автоподключение')),
+                    subtitle: Text(
+                      context.tr(
+                        'Подключаться к выбранному серверу при запуске IVPN',
+                      ),
                     ),
                     value: settings.autoConnect,
                     onChanged: (value) => controller.patch(autoConnect: value),
@@ -487,14 +620,16 @@ class _SettingsPageState extends State<SettingsPage> {
                 ],
               ),
               _section(
-                title: 'Подписки и HWID',
+                title: context.tr('Подписки и HWID'),
                 icon: Icons.fingerprint_rounded,
                 children: [
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Отправлять HWID'),
-                    subtitle: const Text(
-                      'Заголовки x-hwid, x-device-os, x-ver-os, x-device-model',
+                    title: Text(context.tr('Отправлять HWID')),
+                    subtitle: Text(
+                      context.tr(
+                        'Заголовки x-hwid, x-device-os, x-ver-os, x-device-model',
+                      ),
                     ),
                     value: settings.sendHwid,
                     onChanged: (value) => controller.patch(sendHwid: value),
@@ -503,8 +638,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   Container(
                     padding: const EdgeInsets.fromLTRB(14, 8, 6, 8),
                     decoration: BoxDecoration(
-                      color: scheme.surfaceContainerHighest
-                          .withValues(alpha: 0.45),
+                      color: scheme.surfaceContainerHighest.withValues(
+                        alpha: 0.45,
+                      ),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: FutureBuilder<String>(
@@ -512,12 +648,15 @@ class _SettingsPageState extends State<SettingsPage> {
                       builder: (context, snapshot) {
                         return Row(
                           children: [
-                            Icon(Icons.fingerprint_rounded,
-                                size: 18, color: scheme.onSurfaceVariant),
+                            Icon(
+                              Icons.fingerprint_rounded,
+                              size: 18,
+                              color: scheme.onSurfaceVariant,
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                snapshot.data ?? 'Вычисление…',
+                                snapshot.data ?? context.tr('Вычисление…'),
                                 style: const TextStyle(
                                   fontFamily: 'Consolas',
                                   fontSize: 12.5,
@@ -525,9 +664,8 @@ class _SettingsPageState extends State<SettingsPage> {
                               ),
                             ),
                             IconButton(
-                              tooltip: 'Копировать HWID',
-                              onPressed:
-                                  snapshot.hasData ? _copyHwid : null,
+                              tooltip: context.tr('Копировать HWID'),
+                              onPressed: snapshot.hasData ? _copyHwid : null,
                               icon: const Icon(Icons.copy_rounded, size: 18),
                             ),
                           ],
@@ -538,9 +676,11 @@ class _SettingsPageState extends State<SettingsPage> {
                   const SizedBox(height: 8),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Автообновление подписок'),
-                    subtitle: const Text(
-                      'Обновлять при запуске, если истёк интервал панели',
+                    title: Text(context.tr('Автообновление подписок')),
+                    subtitle: Text(
+                      context.tr(
+                        'Обновлять при запуске, если истёк интервал панели',
+                      ),
                     ),
                     value: settings.autoRefreshSubscriptions,
                     onChanged: (value) =>
@@ -550,8 +690,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: scheme.surfaceContainerHighest
-                          .withValues(alpha: 0.45),
+                      color: scheme.surfaceContainerHighest.withValues(
+                        alpha: 0.45,
+                      ),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
                         color: emulation != null
@@ -577,16 +718,20 @@ class _SettingsPageState extends State<SettingsPage> {
                                 children: [
                                   Text(
                                     emulation == null
-                                        ? 'Эмуляция не включена'
-                                        : 'Эмуляция: ${emulation.name}',
-                                    style: theme.textTheme.bodyMedium
-                                        ?.copyWith(
-                                            fontWeight: FontWeight.w600),
+                                        ? context.tr('Эмуляция не включена')
+                                        : context.tr('Эмуляция: {name}', {
+                                            'name': emulation.name,
+                                          }),
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     emulation?.userAgent ??
-                                        'User-Agent отправляется как IVPN',
+                                        context.tr(
+                                          'User-Agent отправляется как IVPN',
+                                        ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
@@ -602,8 +747,8 @@ class _SettingsPageState extends State<SettingsPage> {
                               onPressed: _chooseEmulation,
                               child: Text(
                                 emulation == null
-                                    ? 'Эмулировать клиент'
-                                    : 'Изменить',
+                                    ? context.tr('Эмулировать клиент')
+                                    : context.tr('Изменить'),
                               ),
                             ),
                           ],
@@ -614,26 +759,26 @@ class _SettingsPageState extends State<SettingsPage> {
                             child: TextButton.icon(
                               onPressed: _disableEmulation,
                               icon: const Icon(Icons.close_rounded, size: 16),
-                              label: const Text('Отключить эмуляцию'),
+                              label: Text(context.tr('Отключить эмуляцию')),
                             ),
                           ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _label('User-Agent по умолчанию'),
+                  _label(context.tr('User-Agent по умолчанию')),
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       DropdownMenu<UserAgentPreset>(
                         width: 280,
                         initialSelection: settings.userAgentPreset,
-                        label: const Text('Формат'),
+                        label: Text(context.tr('Формат')),
                         dropdownMenuEntries: [
                           for (final preset in UserAgentPreset.values)
                             DropdownMenuEntry(
                               value: preset,
-                              label: preset.label,
+                              label: context.tr(preset.label),
                             ),
                         ],
                         onSelected: (preset) {
@@ -646,12 +791,15 @@ class _SettingsPageState extends State<SettingsPage> {
                       Expanded(
                         child: Text(
                           emulation != null
-                              ? 'Переопределяется эмуляцией клиента'
-                              : 'Эффективный: ${settings.effectiveUserAgent}',
+                              ? context.tr('Переопределяется эмуляцией клиента')
+                              : context.tr('Эффективный: {value}', {
+                                  'value': settings.effectiveUserAgent,
+                                }),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: scheme.onSurfaceVariant),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
                     ],
@@ -661,101 +809,107 @@ class _SettingsPageState extends State<SettingsPage> {
                     TextField(
                       controller: _customUa,
                       enabled: emulation == null,
-                      onSubmitted: (value) => controller
-                          .patch(customUserAgent: value.trim()),
-                      decoration: const InputDecoration(
-                        labelText: 'Свой User-Agent',
+                      onSubmitted: (value) =>
+                          controller.patch(customUserAgent: value.trim()),
+                      decoration: InputDecoration(
+                        labelText: context.tr('Свой User-Agent'),
                         hintText: 'my-client/1.0',
                       ),
                     ),
                   ],
                 ],
               ),
-              _section(
-                title: 'Ядра',
-                icon: Icons.memory_rounded,
-                trailing: [
-                  IconButton(
-                    tooltip: 'Обновить статус',
-                    onPressed: _loadCores,
-                    icon: const Icon(Icons.refresh_rounded, size: 20),
-                  ),
-                ],
-                children: [
-                  if (_cores == null)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: LinearProgressIndicator(),
-                    )
-                  else
-                    for (final core in _cores!)
-                      _coreRow(core, theme, scheme),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Wintun нужен для TUN-режима. sing-box и Xray скачиваются '
-                    'из официальных релизов GitHub.',
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: scheme.onSurfaceVariant),
-                  ),
-                  const Divider(height: 28),
-                  _label('OpenVPN'),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _openvpn,
-                          decoration: const InputDecoration(
-                            labelText: 'Путь к openvpn.exe',
-                            hintText:
-                                r'C:\Program Files\OpenVPN\bin\openvpn.exe',
-                          ),
-                          onSubmitted: (_) => _applyOpenVpn(),
-                        ),
+              if (!isMobile)
+                _section(
+                  title: context.tr('Ядра'),
+                  icon: Icons.memory_rounded,
+                  trailing: [
+                    IconButton(
+                      tooltip: context.tr('Обновить статус'),
+                      onPressed: _loadCores,
+                      icon: const Icon(Icons.refresh_rounded, size: 20),
+                    ),
+                  ],
+                  children: [
+                    if (_cores == null)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: LinearProgressIndicator(),
+                      )
+                    else
+                      for (final core in _cores!) _coreRow(core, theme, scheme),
+                    const SizedBox(height: 8),
+                    Text(
+                      context.tr(
+                        'Wintun нужен для TUN-режима. sing-box и Xray скачиваются '
+                        'из официальных релизов GitHub.',
                       ),
-                      const SizedBox(width: 10),
-                      OutlinedButton.icon(
-                        onPressed: _openvpnBusy ? null : _applyOpenVpn,
-                        icon: _openvpnBusy
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.search_rounded, size: 18),
-                        label: const Text('Проверить'),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        _openvpnFound == null
-                            ? Icons.error_outline_rounded
-                            : Icons.check_circle_outline_rounded,
-                        size: 16,
-                        color: _openvpnFound == null
-                            ? scheme.onSurfaceVariant
-                            : scheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _openvpnFound ??
-                              'OpenVPN не найден — установите его или укажите путь',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
+                    ),
+                    const Divider(height: 28),
+                    _label('OpenVPN'),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _openvpn,
+                            decoration: InputDecoration(
+                              labelText: context.tr('Путь к openvpn.exe'),
+                              hintText:
+                                  r'C:\Program Files\OpenVPN\bin\openvpn.exe',
+                            ),
+                            onSubmitted: (_) => _applyOpenVpn(),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                        const SizedBox(width: 10),
+                        OutlinedButton.icon(
+                          onPressed: _openvpnBusy ? null : _applyOpenVpn,
+                          icon: _openvpnBusy
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.search_rounded, size: 18),
+                          label: Text(context.tr('Проверить')),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          _openvpnFound == null
+                              ? Icons.error_outline_rounded
+                              : Icons.check_circle_outline_rounded,
+                          size: 16,
+                          color: _openvpnFound == null
+                              ? scheme.onSurfaceVariant
+                              : scheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _openvpnFound ??
+                                context.tr(
+                                  'OpenVPN не найден — установите его или укажите путь',
+                                ),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               _section(
-                title: 'О приложении',
+                title: context.tr('О приложении'),
                 icon: Icons.info_outline_rounded,
                 children: [
                   Row(
@@ -765,13 +919,16 @@ class _SettingsPageState extends State<SettingsPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'IVPN v1.0.0',
-                              style: theme.textTheme.titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.w600),
+                              'IVPN v1.0.1',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Flutter · Material You · Windows',
+                              isMobile
+                                  ? 'Flutter · Material You · Android'
+                                  : 'Flutter · Material You · Windows',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: scheme.onSurfaceVariant,
                               ),
@@ -781,7 +938,9 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: ElevationService.isAdmin()
                               ? scheme.primaryContainer
@@ -803,8 +962,8 @@ class _SettingsPageState extends State<SettingsPage> {
                             const SizedBox(width: 6),
                             Text(
                               ElevationService.isAdmin()
-                                  ? 'Администратор'
-                                  : 'Обычные права',
+                                  ? context.tr('Администратор')
+                                  : context.tr('Обычные права'),
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: ElevationService.isAdmin()
                                     ? scheme.onPrimaryContainer
@@ -819,8 +978,11 @@ class _SettingsPageState extends State<SettingsPage> {
                   const Divider(height: 28),
                   Row(
                     children: [
-                      Icon(Icons.folder_outlined,
-                          size: 18, color: scheme.onSurfaceVariant),
+                      Icon(
+                        Icons.folder_outlined,
+                        size: 18,
+                        color: scheme.onSurfaceVariant,
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
@@ -838,16 +1000,19 @@ class _SettingsPageState extends State<SettingsPage> {
                             Process.run('explorer', [storage.root.path]);
                           } catch (_) {}
                         },
-                        child: const Text('Открыть'),
+                        child: Text(context.tr('Открыть')),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Настройки, подписки и логи хранятся локально. '
-                    'Приложение не собирает телеметрию.',
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: scheme.onSurfaceVariant),
+                    context.tr(
+                      'Настройки, подписки и логи хранятся локально. '
+                      'Приложение не собирает телеметрию.',
+                    ),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -881,8 +1046,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   color: scheme.secondaryContainer,
                   borderRadius: BorderRadius.circular(11),
                 ),
-                child: Icon(icon,
-                    size: 19, color: scheme.onSecondaryContainer),
+                child: Icon(icon, size: 19, color: scheme.onSecondaryContainer),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -891,15 +1055,17 @@ class _SettingsPageState extends State<SettingsPage> {
                   children: [
                     Text(
                       title,
-                      style: theme.textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     if (subtitle != null) ...[
                       const SizedBox(height: 2),
                       Text(
                         subtitle,
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: scheme.onSurfaceVariant),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ],
@@ -918,9 +1084,8 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _label(String text) {
     return Text(
       text,
-      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+      style: Theme.of(context).textTheme.bodyMedium
+          ?.copyWith(fontWeight: FontWeight.w600),
     );
   }
 
@@ -931,8 +1096,7 @@ class _SettingsPageState extends State<SettingsPage> {
     required ColorScheme scheme,
   }) {
     final color = Color(0xFF000000 | (value & 0x00FFFFFF));
-    final dark =
-        ThemeData.estimateBrightnessForColor(color) == Brightness.dark;
+    final dark = ThemeData.estimateBrightnessForColor(color) == Brightness.dark;
     final hex = (value & 0x00FFFFFF)
         .toRadixString(16)
         .padLeft(6, '0')
@@ -991,18 +1155,20 @@ class _SettingsPageState extends State<SettingsPage> {
               children: [
                 Text(
                   core.name,
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   core.installed
-                      ? (core.version ?? 'Установлен')
-                      : 'Не установлен',
+                      ? (core.version ?? context.tr('Установлен'))
+                      : context.tr('Не установлен'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: scheme.onSurfaceVariant),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -1020,8 +1186,7 @@ class _SettingsPageState extends State<SettingsPage> {
             if (core.installed)
               Container(
                 margin: const EdgeInsets.only(right: 8),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: scheme.primaryContainer,
                   borderRadius: BorderRadius.circular(8),
@@ -1036,7 +1201,11 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             FilledButton.tonal(
               onPressed: () => _install(core.name),
-              child: Text(core.installed ? 'Обновить' : 'Установить'),
+              child: Text(
+                core.installed
+                    ? context.tr('Обновить')
+                    : context.tr('Установить'),
+              ),
             ),
           ],
         ],

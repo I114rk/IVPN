@@ -1,6 +1,6 @@
 # IVPN
 
-Windows VPN client built with Flutter and Material 3.
+VPN client for Windows and Android built with Flutter and Material 3. The interface and Windows installer are available in Russian, English and German.
 
 ## Features
 
@@ -10,7 +10,8 @@ Windows VPN client built with Flutter and Material 3.
 - TUN and system proxy modes
 - Optional LAN proxy access with connected-device traffic statistics
 - Windows accent color, light and dark themes
-- Russian interface in v1.0.0
+- Interface and Windows installer in Russian, English and German
+- Android VPN mode powered by the sing-box plugin
 
 ## Install
 
@@ -32,7 +33,15 @@ Build the app and installer package:
 powershell -ExecutionPolicy Bypass -File .\tool\build_installer.ps1
 ```
 
-The script writes the distributable ZIP to `dist\`.
+The script writes a versioned distributable ZIP to `dist\`.
+
+Build an Android APK:
+
+```powershell
+flutter build apk --release
+```
+
+The APK is written to `build\app\outputs\flutter-apk\app-release.apk`.
 
 Run checks:
 

@@ -7,6 +7,7 @@ import 'package:ivpn/ui/theme/app_theme.dart';
 import 'package:window_manager/legacy.dart';
 
 import 'install_service.dart';
+import 'l10n.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -152,14 +153,14 @@ class _InstallerPageState extends State<InstallerPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Добро пожаловать',
+          tr('Добро пожаловать'),
           style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: 6),
         Text(
-          'Мастер установит IVPN и поможет сразу добавить подписку.',
+          tr('Мастер установит IVPN и поможет сразу добавить подписку.'),
           style: theme.textTheme.bodyLarge?.copyWith(
             color: scheme.onSurfaceVariant,
           ),
@@ -171,26 +172,26 @@ class _InstallerPageState extends State<InstallerPage> {
               children: [
                 _InfoTile(
                   icon: Icons.shield_rounded,
-                  title: 'Безопасное подключение',
-                  text:
-                      'sing-box, Xray, WireGuard и OpenVPN в одном клиенте. '
-                      'Режимы TUN и системного прокси.',
+                  title: tr('Безопасное подключение'),
+                  text: tr(
+                    'sing-box, Xray, WireGuard и OpenVPN в одном клиенте. '
+                    'Режимы TUN и системного прокси.',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 _InfoTile(
                   icon: Icons.rss_feed_rounded,
-                  title: 'Подписка за один шаг',
-                  text:
-                      'Вставьте ссылку — серверы, HWID и лимит устройств '
-                      'настроятся автоматически.',
+                  title: tr('Подписка за один шаг'),
+                  text: tr(
+                    'Вставьте ссылку — серверы, HWID и лимит устройств '
+                    'настроятся автоматически.',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 _InfoTile(
                   icon: Icons.palette_outlined,
                   title: 'Material You',
-                  text:
-                      'Цветовая схема подстраивается под акцент Windows, '
-                      'интерфейс на русском языке.',
+                  text: tr('Цветовая схема подстраивается под акцент Windows.'),
                 ),
               ],
             ),
@@ -203,7 +204,7 @@ class _InstallerPageState extends State<InstallerPage> {
             FilledButton.icon(
               onPressed: () => setState(() => _step = 1),
               icon: const Icon(Icons.arrow_forward_rounded, size: 20),
-              label: const Text('Продолжить'),
+              label: Text(tr('Продолжить')),
             ),
           ],
         ),
@@ -218,14 +219,14 @@ class _InstallerPageState extends State<InstallerPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Параметры установки',
+          tr('Параметры установки'),
           style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: 6),
         Text(
-          'Выберите папку и дополнительные действия.',
+          tr('Выберите папку и дополнительные действия.'),
           style: theme.textTheme.bodyMedium?.copyWith(
             color: scheme.onSurfaceVariant,
           ),
@@ -239,10 +240,10 @@ class _InstallerPageState extends State<InstallerPage> {
                 TextField(
                   controller: _pathController,
                   decoration: InputDecoration(
-                    labelText: 'Папка установки',
+                    labelText: tr('Папка установки'),
                     prefixIcon: const Icon(Icons.folder_outlined, size: 20),
                     suffixIcon: IconButton(
-                      tooltip: 'Обзор',
+                      tooltip: tr('Выбрать папку'),
                       onPressed: _installing ? null : _browse,
                       icon: const Icon(Icons.folder_open_rounded, size: 20),
                     ),
@@ -253,18 +254,18 @@ class _InstallerPageState extends State<InstallerPage> {
                   value: _desktopShortcut,
                   onChanged: (value) =>
                       setState(() => _desktopShortcut = value),
-                  title: 'Ярлык на рабочем столе',
+                  title: tr('Ярлык на рабочем столе'),
                 ),
                 _check(
                   value: _startMenuShortcut,
                   onChanged: (value) =>
                       setState(() => _startMenuShortcut = value),
-                  title: 'Ярлык в меню «Пуск»',
+                  title: tr('Ярлык в меню «Пуск»'),
                 ),
                 _check(
                   value: _launchAfter,
                   onChanged: (value) => setState(() => _launchAfter = value),
-                  title: 'Запустить IVPN после установки',
+                  title: tr('Запустить IVPN после установки'),
                 ),
                 const SizedBox(height: 12),
                 Divider(color: scheme.outlineVariant),
@@ -278,14 +279,14 @@ class _InstallerPageState extends State<InstallerPage> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Подписка',
+                      tr('Подписка'),
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'необязательно',
+                      tr('необязательно'),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -295,19 +296,22 @@ class _InstallerPageState extends State<InstallerPage> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Название (необязательно)',
-                    prefixIcon: Icon(Icons.label_outline_rounded, size: 20),
+                  decoration: InputDecoration(
+                    labelText: tr('Название (необязательно)'),
+                    prefixIcon: const Icon(
+                      Icons.label_outline_rounded,
+                      size: 20,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _urlController,
                   keyboardType: TextInputType.url,
-                  decoration: const InputDecoration(
-                    labelText: 'Ссылка на подписку',
+                  decoration: InputDecoration(
+                    labelText: tr('Ссылка на подписку'),
                     hintText: 'https://example.com/sub/…',
-                    prefixIcon: Icon(Icons.link_rounded, size: 20),
+                    prefixIcon: const Icon(Icons.link_rounded, size: 20),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -316,8 +320,8 @@ class _InstallerPageState extends State<InstallerPage> {
                   onChanged: (value) => setState(() => _sendHwid = value),
                   contentPadding: EdgeInsets.zero,
                   dense: true,
-                  title: const Text('Отправлять HWID при активации'),
-                  subtitle: const Text('Нужно для учёта устройств в Remnawave'),
+                  title: Text(tr('Отправлять HWID при активации')),
+                  subtitle: Text(tr('Нужно для учёта устройств в Remnawave')),
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
@@ -332,13 +336,13 @@ class _InstallerPageState extends State<InstallerPage> {
           children: [
             TextButton(
               onPressed: _installing ? null : () => setState(() => _step = 0),
-              child: const Text('Назад'),
+              child: Text(tr('Назад')),
             ),
             const Spacer(),
             FilledButton.icon(
               onPressed: _installing ? null : _install,
               icon: const Icon(Icons.download_rounded, size: 20),
-              label: const Text('Установить'),
+              label: Text(tr('Установить')),
             ),
           ],
         ),
@@ -355,7 +359,7 @@ class _InstallerPageState extends State<InstallerPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Установка IVPN',
+          tr('Установка IVPN'),
           textAlign: TextAlign.center,
           style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.w700,
@@ -390,7 +394,7 @@ class _InstallerPageState extends State<InstallerPage> {
         ),
         const SizedBox(height: 28),
         Text(
-          'Не закрывайте окно мастера.',
+          tr('Не закрывайте окно мастера.'),
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall?.copyWith(
             color: scheme.onSurfaceVariant,
@@ -425,7 +429,7 @@ class _InstallerPageState extends State<InstallerPage> {
         ),
         const SizedBox(height: 24),
         Text(
-          'IVPN установлен',
+          tr('IVPN установлен'),
           textAlign: TextAlign.center,
           style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.w700,
@@ -433,7 +437,7 @@ class _InstallerPageState extends State<InstallerPage> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Приложение готово к работе.',
+          tr('Приложение готово к работе.'),
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: scheme.onSurfaceVariant,
@@ -449,14 +453,20 @@ class _InstallerPageState extends State<InstallerPage> {
             ),
             child: Column(
               children: [
-                _resultRow('Папка', File(result.executablePath).parent.path),
+                _resultRow(
+                  tr('Папка'),
+                  File(result.executablePath).parent.path,
+                ),
                 if (result.subscriptionTitle != null) ...[
                   const SizedBox(height: 8),
-                  _resultRow('Подписка', result.subscriptionTitle!),
+                  _resultRow(tr('Подписка'), result.subscriptionTitle!),
                 ],
                 if (result.serversAdded > 0) ...[
                   const SizedBox(height: 8),
-                  _resultRow('Серверов добавлено', '${result.serversAdded}'),
+                  _resultRow(
+                    tr('Серверов добавлено'),
+                    '${result.serversAdded}',
+                  ),
                 ],
               ],
             ),
@@ -469,13 +479,13 @@ class _InstallerPageState extends State<InstallerPage> {
             FilledButton.icon(
               onPressed: _launchInstalled,
               icon: const Icon(Icons.rocket_launch_rounded, size: 20),
-              label: const Text('Запустить IVPN'),
+              label: Text(tr('Запустить IVPN')),
             ),
             const SizedBox(width: 12),
             OutlinedButton.icon(
               onPressed: _openInstallFolder,
               icon: const Icon(Icons.folder_open_rounded, size: 20),
-              label: const Text('Открыть папку'),
+              label: Text(tr('Открыть папку')),
             ),
           ],
         ),
@@ -483,7 +493,7 @@ class _InstallerPageState extends State<InstallerPage> {
         Center(
           child: TextButton(
             onPressed: () => windowManager.destroy(),
-            child: const Text('Закрыть'),
+            child: Text(tr('Закрыть')),
           ),
         ),
       ],
@@ -559,7 +569,7 @@ if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $dialog.
     if (_installing) return;
     final path = _pathController.text.trim();
     if (path.isEmpty) {
-      setState(() => _error = 'Укажите папку установки');
+      setState(() => _error = tr('Укажите папку установки'));
       return;
     }
     final directory = Directory(path);
@@ -570,7 +580,7 @@ if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $dialog.
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            title: const Text('Папка не пуста'),
+            title: Text(tr('Папка не пуста')),
             content: Text(
               'Файлы в «$path» будут заменены. '
               'Подписки и настройки сохранятся.',
@@ -578,11 +588,11 @@ if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $dialog.
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('Отмена'),
+                child: Text(tr('Отмена')),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('Продолжить'),
+                child: Text(tr('Продолжить')),
               ),
             ],
           ),
@@ -594,7 +604,7 @@ if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $dialog.
     setState(() {
       _step = 2;
       _progress = 0.01;
-      _status = 'Подготовка…';
+      _status = tr('Подготовка…');
       _error = null;
       _installing = true;
     });
@@ -638,7 +648,7 @@ if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $dialog.
         _progress = 0;
         _error = error is InstallException
             ? error.message
-            : 'Не удалось установить: $error';
+            : tr('Не удалось установить: {error}', {'error': error});
       });
     }
   }
@@ -717,12 +727,12 @@ class _TitleBar extends StatelessWidget {
             const Spacer(),
             _WindowButton(
               icon: Icons.remove_rounded,
-              tooltip: 'Свернуть',
+              tooltip: tr('Свернуть'),
               onTap: () => windowManager.minimize(),
             ),
             _WindowButton(
               icon: Icons.close_rounded,
-              tooltip: 'Закрыть',
+              tooltip: tr('Закрыть'),
               onTap: () => windowManager.destroy(),
             ),
           ],
@@ -803,15 +813,19 @@ class _HeroPanel extends StatelessWidget {
               ),
             ),
             Text(
-              'VPN-клиент для Windows',
+              tr('VPN-клиент для Windows'),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: Colors.white.withValues(alpha: 0.75),
               ),
             ),
             const SizedBox(height: 28),
-            _heroFeature(Icons.rss_feed_rounded, 'Подписки', 'Remnawave, HWID'),
-            _heroFeature(Icons.bolt_rounded, 'Движки', 'sing-box, Xray'),
-            _heroFeature(Icons.lan_rounded, 'Режимы', 'TUN, Proxy, LAN'),
+            _heroFeature(
+              Icons.rss_feed_rounded,
+              tr('Подписки'),
+              'Remnawave, HWID',
+            ),
+            _heroFeature(Icons.bolt_rounded, tr('Движки'), 'sing-box, Xray'),
+            _heroFeature(Icons.lan_rounded, tr('Режимы'), 'TUN, Proxy, LAN'),
             const Spacer(),
             Row(
               children: [
@@ -833,7 +847,7 @@ class _HeroPanel extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'v1.0.0',
+              'v1.0.1',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: Colors.white.withValues(alpha: 0.6),
               ),

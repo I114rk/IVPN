@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:device_info_plus/device_info_plus.dart';
+
 abstract class DeviceInfoService {
   Future<String> machineId();
   Future<String> osName();
@@ -11,8 +13,60 @@ abstract class DeviceInfoService {
 class DeviceInfo {
   static DeviceInfoService create() {
     if (Platform.isWindows) return WindowsDeviceInfoService();
+    if (Platform.isAndroid) return AndroidDeviceInfoService();
     return GenericDeviceInfoService();
   }
+}
+
+class AndroidDeviceInfoService implements DeviceInfoService {
+  String? _machineId;
+  String? _osVersion;
+  String? _deviceModel;
+
+  Future<AndroidDeviceInfo> get _info => DeviceInfoPlugin().androidInfo;
+
+  @override
+  Future<String> machineId() async {
+    if (_machineId != null) return _machineId!;
+    try {
+      final info = await _info;
+      _machineId = info.id.isNotEmpty ? info.id : 'android-${info.fingerprint}';
+    } catch (_) {
+      _machineId = 'android-${Platform.localHostname}';
+    }
+    return _machineId!;
+  }
+
+  @override
+  Future<String> osName() async => 'Android';
+
+  @override
+  Future<String> osVersion() async {
+    if (_osVersion != null) return _osVersion!;
+    try {
+      final info = await _info;
+      _osVersion = '${info.version.release} (SDK ${info.version.sdkInt})';
+    } catch (_) {
+      _osVersion = Platform.operatingSystemVersion;
+    }
+    return _osVersion!;
+  }
+
+  @override
+  Future<String> deviceModel() async {
+    if (_deviceModel != null) return _deviceModel!;
+    try {
+      final info = await _info;
+      final model = info.model.isEmpty ? info.device : info.model;
+      _deviceModel = '${info.manufacturer} $model'.trim();
+    } catch (_) {
+      _deviceModel = Platform.localHostname;
+    }
+    return _deviceModel!;
+  }
+
+  @override
+  Future<int?> accentColor() async => null;
 }
 
 class GenericDeviceInfoService implements DeviceInfoService {
@@ -44,8 +98,7 @@ class GenericDeviceInfoService implements DeviceInfoService {
 class WindowsDeviceInfoService implements DeviceInfoService {
   String? _machineId;
 
-  static const _cryptographyKey =
-      r'HKLM\SOFTWARE\Microsoft\Cryptography';
+  static const _cryptographyKey = r'HKLM\SOFTWARE\Microsoft\Cryptography';
   static const _currentVersionKey =
       r'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion';
   static const _biosKey = r'HKLM\HARDWARE\DESCRIPTION\System\BIOS';
@@ -55,14 +108,16 @@ class WindowsDeviceInfoService implements DeviceInfoService {
   Future<String> machineId() async {
     _machineId ??=
         await _readRegistry(_cryptographyKey, 'MachineGuid') ??
-            Platform.localHostname;
+        Platform.localHostname;
     return _machineId!;
   }
 
   @override
   Future<String> osName() async {
-    final product = await _readRegistry(_currentVersionKey, 'ProductName') ?? '';
-    final build = int.tryParse(
+    final product =
+        await _readRegistry(_currentVersionKey, 'ProductName') ?? '';
+    final build =
+        int.tryParse(
           await _readRegistry(_currentVersionKey, 'CurrentBuildNumber') ?? '',
         ) ??
         0;
@@ -105,17 +160,18 @@ class WindowsDeviceInfoService implements DeviceInfoService {
 
   Future<String?> _readRegistry(String key, String value) async {
     try {
-      final result = await Process.run(
-        'reg',
-        ['query', key, '/v', value],
-        runInShell: false,
-      );
+      final result = await Process.run('reg', [
+        'query',
+        key,
+        '/v',
+        value,
+      ], runInShell: false);
       if (result.exitCode != 0) return null;
       final output = result.stdout.toString();
       for (final line in output.split(RegExp(r'\r?\n'))) {
-        final match =
-            RegExp('^\\s*${RegExp.escape(value)}\\s+REG_\\w+\\s+(.*)\$')
-                .firstMatch(line);
+        final match = RegExp(
+          '^\\s*${RegExp.escape(value)}\\s+REG_\\w+\\s+(.*)\$',
+        ).firstMatch(line);
         if (match != null) return match.group(1)?.trim();
       }
       return null;

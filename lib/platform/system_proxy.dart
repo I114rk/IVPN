@@ -56,17 +56,18 @@ class SystemProxyService {
 
   Future<String?> _read(String name) async {
     try {
-      final result = await Process.run(
-        'reg',
-        ['query', _key, '/v', name],
-        runInShell: false,
-      );
+      final result = await Process.run('reg', [
+        'query',
+        _key,
+        '/v',
+        name,
+      ], runInShell: false);
       if (result.exitCode != 0) return null;
       final output = result.stdout.toString();
       for (final line in output.split(RegExp(r'\r?\n'))) {
-        final match =
-            RegExp('^\\s*${RegExp.escape(name)}\\s+REG_\\w+\\s+(.*)\$')
-                .firstMatch(line);
+        final match = RegExp(
+          '^\\s*${RegExp.escape(name)}\\s+REG_\\w+\\s+(.*)\$',
+        ).firstMatch(line);
         if (match != null) {
           final value = match.group(1)?.trim() ?? '';
           if (value.startsWith('0x')) {
@@ -83,31 +84,33 @@ class SystemProxyService {
 
   Future<void> _setString(String name, String value) async {
     try {
-      await Process.run(
-        'reg',
-        ['add', _key, '/v', name, '/t', 'REG_SZ', '/d', value, '/f'],
-        runInShell: false,
-      );
+      await Process.run('reg', [
+        'add',
+        _key,
+        '/v',
+        name,
+        '/t',
+        'REG_SZ',
+        '/d',
+        value,
+        '/f',
+      ], runInShell: false);
     } catch (_) {}
   }
 
   Future<void> _setDword(String name, int value) async {
     try {
-      await Process.run(
-        'reg',
-        [
-          'add',
-          _key,
-          '/v',
-          name,
-          '/t',
-          'REG_DWORD',
-          '/d',
-          value.toString(),
-          '/f',
-        ],
-        runInShell: false,
-      );
+      await Process.run('reg', [
+        'add',
+        _key,
+        '/v',
+        name,
+        '/t',
+        'REG_DWORD',
+        '/d',
+        value.toString(),
+        '/f',
+      ], runInShell: false);
     } catch (_) {}
   }
 
@@ -115,11 +118,11 @@ class SystemProxyService {
     if (!Platform.isWindows) return;
     try {
       final wininet = DynamicLibrary.open('wininet.dll');
-      final setOption = wininet.lookupFunction<
-          Int32 Function(Pointer<Void>, Uint32, Pointer<Void>, Uint32),
-          int Function(Pointer<Void>, int, Pointer<Void>, int)>(
-        'InternetSetOptionW',
-      );
+      final setOption = wininet
+          .lookupFunction<
+            Int32 Function(Pointer<Void>, Uint32, Pointer<Void>, Uint32),
+            int Function(Pointer<Void>, int, Pointer<Void>, int)
+          >('InternetSetOptionW');
       setOption(nullptr, 39, nullptr, 0);
       setOption(nullptr, 37, nullptr, 0);
     } catch (_) {}

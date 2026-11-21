@@ -35,14 +35,14 @@ class ShareLinkParser {
         'vmess' => _vmess(link, subscriptionId, subscriptionName),
         'trojan' => _trojan(link, subscriptionId, subscriptionName),
         'ss' => _shadowsocks(link, subscriptionId, subscriptionName),
-        'hysteria2' || 'hy2' =>
-          _hysteria2(link, subscriptionId, subscriptionName),
+        'hysteria2' ||
+        'hy2' => _hysteria2(link, subscriptionId, subscriptionName),
         'tuic' => _tuic(link, subscriptionId, subscriptionName),
         'socks' || 'socks5' => _socks(link, subscriptionId, subscriptionName),
         'http' || 'https' => _http(link, subscriptionId, subscriptionName),
         'ssh' => _ssh(link, subscriptionId, subscriptionName),
-        'wireguard' || 'wg' =>
-          _wireguard(link, subscriptionId, subscriptionName),
+        'wireguard' ||
+        'wg' => _wireguard(link, subscriptionId, subscriptionName),
         _ => null,
       };
     } catch (_) {
@@ -226,7 +226,8 @@ class ShareLinkParser {
         }
         rest = rest.substring(0, queryIndex);
       }
-      final decodedUser = tryBase64DecodeUtf8(userInfo) ?? Uri.decodeComponent(userInfo);
+      final decodedUser =
+          tryBase64DecodeUtf8(userInfo) ?? Uri.decodeComponent(userInfo);
       final split = decodedUser.indexOf(':');
       if (split < 0) return null;
       method = decodedUser.substring(0, split);
@@ -481,8 +482,7 @@ class ShareLinkParser {
         'link': link,
         'private_key': privateKey,
         'peer_public_key': query['publickey'] ?? query['public_key'] ?? '',
-        'pre_shared_key':
-            query['presharedkey'] ?? query['preshared_key'] ?? '',
+        'pre_shared_key': query['presharedkey'] ?? query['preshared_key'] ?? '',
         'address': address.split(',').map((e) => e.trim()).toList(),
         if (reservedRaw != null)
           'reserved': reservedRaw
@@ -539,7 +539,8 @@ class ShareLinkParser {
   }
 
   static String? _transportPath(Map<String, String> query) {
-    final value = query['path'] ?? query['serviceName'] ?? query['service_name'];
+    final value =
+        query['path'] ?? query['serviceName'] ?? query['service_name'];
     return (value == null || value.isEmpty) ? null : value;
   }
 
