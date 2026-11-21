@@ -68,8 +68,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="${GITHUB_REF_NAME}"
+          android_artifacts="release-assets/android-packages"
+          test -f "$android_artifacts/flutter-apk/app-release.apk"
+          test -f "$android_artifacts/bundle/release/app-release.aab"
           if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" release-assets/windows-package/* release-assets/android-packages/* --clobber
+            gh release upload "$tag" release-assets/windows-package/* \
+              "$android_artifacts/flutter-apk/app-release.apk" \
+              "$android_artifacts/bundle/release/app-release.aab" --clobber
           else
-            gh release create "$tag" release-assets/windows-package/* release-assets/android-packages/* --generate-notes --title "IVPN $tag"
+            gh release create "$tag" release-assets/windows-package/* \
+              "$android_artifacts/flutter-apk/app-release.apk" \
+              "$android_artifacts/bundle/release/app-release.aab" \
+              --generate-notes --title "IVPN $tag"
           fi
