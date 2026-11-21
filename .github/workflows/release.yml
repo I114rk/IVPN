@@ -69,15 +69,17 @@ jobs:
         run: |
           tag="${GITHUB_REF_NAME}"
           android_artifacts="release-assets/android-packages"
-          test -f "$android_artifacts/flutter-apk/app-release.apk"
-          test -f "$android_artifacts/bundle/release/app-release.aab"
+          find release-assets -type f -print
+          windows_package=$(find release-assets/windows-package -type f -name 'IVPN-Setup-*.zip' -print -quit)
+          android_apk=$(find "$android_artifacts" -type f -name '*.apk' -print -quit)
+          android_aab=$(find "$android_artifacts" -type f -name '*.aab' -print -quit)
+          if [[ -z "$windows_package" || -z "$android_apk" || -z "$android_aab" ]]; then
+            echo "Release artifacts are missing (Windows: $windows_package, APK: $android_apk, AAB: $android_aab)." >&2
+            exit 1
+          fi
           if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" release-assets/windows-package/* \
-              "$android_artifacts/flutter-apk/app-release.apk" \
-              "$android_artifacts/bundle/release/app-release.aab" --clobber
+            gh release upload "$tag" "$windows_package" "$android_apk" "$android_aab" --clobber
           else
-            gh release create "$tag" release-assets/windows-package/* \
-              "$android_artifacts/flutter-apk/app-release.apk" \
-              "$android_artifacts/bundle/release/app-release.aab" \
+            gh release create "$tag" "$windows_package" "$android_apk" "$android_aab" \
               --generate-notes --title "IVPN $tag"
           fi
