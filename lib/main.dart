@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:mmkv/mmkv.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/legacy.dart';
 
@@ -22,6 +23,7 @@ import 'services/subscription_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await MMKV.initialize();
 
   final isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
   if (isDesktop) {

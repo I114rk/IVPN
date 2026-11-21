@@ -2,7 +2,8 @@ param(
   [string[]]$Targets = @(
     "$PSScriptRoot\..\windows\runner\resources\app_icon.ico"
   ),
-  [string]$Preview = "$PSScriptRoot\..\build\icon_preview.png"
+  [string]$Preview = "$PSScriptRoot\..\build\icon_preview.png",
+  [string]$AndroidRes = "$PSScriptRoot\..\android\app\src\main\res"
 )
 
 Add-Type -AssemblyName System.Drawing
@@ -85,6 +86,25 @@ foreach ($targetSize in $sizes) {
     Bytes = (Convert-ToPngBytes $bitmap $targetSize)
   }
 }
+
+$androidIcons = [ordered]@{
+  'mipmap-mdpi'    = 48
+  'mipmap-hdpi'    = 72
+  'mipmap-xhdpi'   = 96
+  'mipmap-xxhdpi'  = 144
+  'mipmap-xxxhdpi' = 192
+}
+foreach ($directoryName in $androidIcons.Keys) {
+  $directory = Join-Path $AndroidRes $directoryName
+  if (-not (Test-Path -LiteralPath $directory)) {
+    New-Item -ItemType Directory -Force -Path $directory | Out-Null
+  }
+  $iconPath = Join-Path $directory 'ic_launcher.png'
+  $pngBytes = Convert-ToPngBytes $bitmap $androidIcons[$directoryName]
+  [System.IO.File]::WriteAllBytes($iconPath, $pngBytes)
+  Write-Host "Android icon written: $iconPath"
+}
+
 $bitmap.Dispose()
 
 function Write-Ico([string]$path, $pngEntries) {

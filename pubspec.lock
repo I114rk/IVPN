@@ -414,7 +414,7 @@ packages:
     source: hosted
     version: "2.1.0"
   mmkv:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: mmkv
       sha256: "24425555dfba986426a44aaf3fd33db7257b4f6609afc31325f9abe842e767ee"

@@ -50,6 +50,7 @@ dependencies:
   url_launcher: ^6.3.3
   country_flags: ^4.1.2
   flutter_sing_box: ^3.1.0
+  mmkv: ^2.4.3
   device_info_plus: ^13.3.0
 
 dev_dependencies:
