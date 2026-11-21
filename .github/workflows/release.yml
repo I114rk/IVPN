@@ -46,13 +46,10 @@ jobs:
         run: |
           flutter pub get
           flutter build apk --release
-          flutter build appbundle --release
       - uses: actions/upload-artifact@v6
         with:
           name: android-packages
-          path: |
-            build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/bundle/release/app-release.aab
+          path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
 
   release:
@@ -73,14 +70,13 @@ jobs:
           find release-assets -type f -print
           windows_package=$(find release-assets/windows-package -type f -name 'IVPN-Setup-*.zip' -print -quit)
           android_apk=$(find "$android_artifacts" -type f -name '*.apk' -print -quit)
-          android_aab=$(find "$android_artifacts" -type f -name '*.aab' -print -quit)
-          if [[ -z "$windows_package" || -z "$android_apk" || -z "$android_aab" ]]; then
-            echo "Release artifacts are missing (Windows: $windows_package, APK: $android_apk, AAB: $android_aab)." >&2
+          if [[ -z "$windows_package" || -z "$android_apk" ]]; then
+            echo "Release artifacts are missing (Windows: $windows_package, APK: $android_apk)." >&2
             exit 1
           fi
           if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" "$windows_package" "$android_apk" "$android_aab" --clobber
+            gh release upload "$tag" "$windows_package" "$android_apk" --clobber
           else
-            gh release create "$tag" "$windows_package" "$android_apk" "$android_aab" \
+            gh release create "$tag" "$windows_package" "$android_apk" \
               --generate-notes --title "IVPN $tag"
           fi
