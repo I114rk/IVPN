@@ -43,6 +43,7 @@ class ConnectionController extends ChangeNotifier {
     required SettingsController settings,
     required SubscriptionController subscriptions,
     required SystemProxyService proxy,
+    AndroidVpnEngine? androidVpn,
   }) : _cores = cores,
        _engine = engine,
        _storage = storage,
@@ -50,7 +51,7 @@ class ConnectionController extends ChangeNotifier {
        _settings = settings,
        _subscriptions = subscriptions,
        _proxy = proxy,
-       _android = AndroidVpnEngine(logs),
+       _android = androidVpn ?? AndroidVpnEngine(logs),
        _engineState = engine.state {
     _engineSubscription = _engine.states.listen(_onEngineState);
     if (AndroidVpnEngine.isSupported) {

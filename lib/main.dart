@@ -8,6 +8,7 @@ import 'package:window_manager/legacy.dart';
 import 'app.dart';
 import 'core/models/app_settings.dart';
 import 'core/subscription/subscription_client.dart';
+import 'platform/android_vpn.dart';
 import 'platform/device_info.dart';
 import 'platform/system_proxy.dart';
 import 'services/connection_controller.dart';
@@ -50,6 +51,8 @@ Future<void> main() async {
   await stateStore.load();
 
   final logs = LogService(storage);
+  final androidVpn = AndroidVpnEngine(logs);
+  if (AndroidVpnEngine.isSupported) await androidVpn.init();
   final device = DeviceInfo.create();
 
   final settings = SettingsController(stateStore, device);
@@ -88,6 +91,7 @@ Future<void> main() async {
     settings: settings,
     subscriptions: subscriptions,
     proxy: proxy,
+    androidVpn: androidVpn,
   );
   final ipInfo = IpInfoController();
 

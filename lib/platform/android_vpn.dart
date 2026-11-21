@@ -40,7 +40,6 @@ class AndroidVpnEngine {
 
   Future<void> init() async {
     if (!isSupported || _initialized) return;
-    _initialized = true;
     await _client.init();
     _stateSubscription = _client.proxyStateStream.listen(_handleState);
     _statusSubscription = _client.connectedStatusStream.listen((status) {
@@ -51,6 +50,7 @@ class AndroidVpnEngine {
         onLog?.call(entry.message, entry.level);
       }
     });
+    _initialized = true;
   }
 
   Future<void> start({
