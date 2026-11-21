@@ -45,12 +45,12 @@ $checkPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(255, 
 $checkPen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
 $checkPen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
 $checkPen.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
-$checkPoints = @(
-  (New-Object System.Drawing.Point(98, 132)),
-  (New-Object System.Drawing.Point(121, 155)),
-  (New-Object System.Drawing.Point(162, 108))
+$checkPoints = [System.Drawing.Point[]]@(
+  [System.Drawing.Point]::new(98, 132),
+  [System.Drawing.Point]::new(121, 155),
+  [System.Drawing.Point]::new(162, 108)
 )
-$graphics.DrawLines($checkPen, $checkPoints)
+$graphics.DrawLines($checkPen, [System.Drawing.Point[]]$checkPoints)
 
 $graphics.Dispose()
 

@@ -23,7 +23,7 @@ The installer can add a subscription, create shortcuts and launch IVPN. TUN mode
 
 Requirements:
 
-- Flutter 3.47 or newer
+- Flutter 3.50.1 or newer
 - Visual Studio with Desktop development with C++
 - Windows 10 or 11 x64
 
