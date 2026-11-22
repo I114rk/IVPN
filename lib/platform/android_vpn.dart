@@ -37,7 +37,7 @@ class AndroidVpnEngine {
   AndroidVpnStatusCallback? onStatus;
   AndroidVpnLogCallback? onLog;
 
-  static bool get isSupported => Platform.isAndroid;
+  static bool get isSupported => Platform.isAndroid || Platform.isWindows;
 
   Future<void> init() {
     if (!isSupported || _initialized) return Future<void>.value();
@@ -92,6 +92,19 @@ class AndroidVpnEngine {
     storage.setInt('max_id', 1);
     ProfileStorage.instance.setSelectedProfile(1);
     ProfileStorage.instance.setUsingConfig(directory.path);
+
+    if (Platform.isWindows) {
+      final installed = await _client.installService(
+        serviceName: 'clash_sing_service',
+        displayName: 'IVPN VPN Service',
+        description: 'IVPN secure tunnel service',
+      );
+      if (!installed) {
+        throw const AndroidVpnException(
+          'Не удалось установить службу IVPN. Разрешите запрос Windows для запуска TUN.',
+        );
+      }
+    }
 
     final completer = Completer<void>();
     _startCompleter = completer;

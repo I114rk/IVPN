@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -61,11 +60,13 @@ Future<void> main() async {
   if (Platform.isAndroid &&
       (settings.value.mode != ConnectionMode.tun ||
           settings.value.engine != CoreEngine.singbox ||
-          settings.value.allowLan)) {
+          settings.value.allowLan ||
+          settings.value.autoConnect)) {
     await settings.patch(
       mode: ConnectionMode.tun,
       engine: CoreEngine.singbox,
       allowLan: false,
+      autoConnect: false,
     );
   }
 
@@ -122,16 +123,6 @@ Future<void> main() async {
   );
 
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (AndroidVpnEngine.isSupported) {
-      unawaited(
-        androidVpn.init().catchError((Object error) {
-          logs.error(
-            'conn',
-            'Не удалось инициализировать VPN на Android: $error',
-          );
-        }),
-      );
-    }
     if (settings.value.autoRefreshSubscriptions) {
       subscriptions.refreshAll();
     }

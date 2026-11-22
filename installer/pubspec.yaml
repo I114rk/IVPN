@@ -1,7 +1,7 @@
 name: ivpn_installer
 description: "IVPN setup — Material 3 installer with subscription support."
 publish_to: 'none'
-version: 1.0.2+3
+version: 1.0.3+4
 
 environment:
   sdk: ^3.13.7

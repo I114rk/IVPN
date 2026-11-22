@@ -327,7 +327,7 @@ class ConnectionController extends ChangeNotifier {
     final config = SingboxConfigBuilder.build(
       profile: profile,
       settings: settings,
-      android: true,
+      android: Platform.isAndroid,
     );
 
     _connecting = true;
