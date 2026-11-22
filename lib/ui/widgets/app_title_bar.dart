@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/legacy.dart';
 
+import '../../core/app_version.dart';
 import '../../services/settings_controller.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -16,10 +17,12 @@ class AppTitleBar extends StatefulWidget {
 
 class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
   bool _maximized = false;
+  late final Future<String> _version;
 
   @override
   void initState() {
     super.initState();
+    _version = AppVersion.value;
     windowManager.addListener(this);
     unawaited(
       windowManager.isMaximized().then((value) {
@@ -96,10 +99,13 @@ class _AppTitleBarState extends State<AppTitleBar> with WindowListener {
               color: scheme.secondaryContainer,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(
-              'v1.0.0',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: scheme.onSecondaryContainer,
+            child: FutureBuilder<String>(
+              future: _version,
+              builder: (context, snapshot) => Text(
+                'v${snapshot.data ?? '…'}',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: scheme.onSecondaryContainer,
+                ),
               ),
             ),
           ),

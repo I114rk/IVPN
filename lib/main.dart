@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -52,7 +53,6 @@ Future<void> main() async {
 
   final logs = LogService(storage);
   final androidVpn = AndroidVpnEngine(logs);
-  if (AndroidVpnEngine.isSupported) await androidVpn.init();
   final device = DeviceInfo.create();
 
   final settings = SettingsController(stateStore, device);
@@ -122,6 +122,16 @@ Future<void> main() async {
   );
 
   WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (AndroidVpnEngine.isSupported) {
+      unawaited(
+        androidVpn.init().catchError((Object error) {
+          logs.error(
+            'conn',
+            'Не удалось инициализировать VPN на Android: $error',
+          );
+        }),
+      );
+    }
     if (settings.value.autoRefreshSubscriptions) {
       subscriptions.refreshAll();
     }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/app_version.dart';
 import '../../core/models/app_settings.dart';
 import '../../core/models/client_emulation.dart';
 import '../../core/utils/network_info.dart';
@@ -918,10 +919,13 @@ class _SettingsPageState extends State<SettingsPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'IVPN v1.0.1',
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w600,
+                            FutureBuilder<String>(
+                              future: AppVersion.value,
+                              builder: (context, snapshot) => Text(
+                                'IVPN v${snapshot.data ?? '…'}',
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 2),

@@ -27,6 +27,7 @@ class AndroidVpnEngine {
   final FlutterSingBox _client = FlutterSingBox();
 
   bool _initialized = false;
+  Future<void>? _initializing;
   StreamSubscription<ProxyState>? _stateSubscription;
   StreamSubscription<ClientStatus>? _statusSubscription;
   StreamSubscription<List<ClientLog>>? _logSubscription;
@@ -38,19 +39,28 @@ class AndroidVpnEngine {
 
   static bool get isSupported => Platform.isAndroid;
 
-  Future<void> init() async {
-    if (!isSupported || _initialized) return;
-    await _client.init();
-    _stateSubscription = _client.proxyStateStream.listen(_handleState);
-    _statusSubscription = _client.connectedStatusStream.listen((status) {
-      onStatus?.call(status);
-    });
-    _logSubscription = _client.logStream.listen((entries) {
-      for (final entry in entries) {
-        onLog?.call(entry.message, entry.level);
-      }
-    });
-    _initialized = true;
+  Future<void> init() {
+    if (!isSupported || _initialized) return Future<void>.value();
+    return _initializing ??= _initialize();
+  }
+
+  Future<void> _initialize() async {
+    try {
+      await _client.init();
+      _stateSubscription = _client.proxyStateStream.listen(_handleState);
+      _statusSubscription = _client.connectedStatusStream.listen((status) {
+        onStatus?.call(status);
+      });
+      _logSubscription = _client.logStream.listen((entries) {
+        for (final entry in entries) {
+          onLog?.call(entry.message, entry.level);
+        }
+      });
+      _initialized = true;
+    } catch (_) {
+      _initializing = null;
+      rethrow;
+    }
   }
 
   Future<void> start({

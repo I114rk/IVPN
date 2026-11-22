@@ -14,7 +14,7 @@ import 'package:path/path.dart' as p;
 
 import 'l10n.dart';
 
-const _appVersion = String.fromEnvironment('APP_VERSION', defaultValue: '1.0.0');
+const _appVersion = String.fromEnvironment('APP_VERSION', defaultValue: '1.0.2');
 
 class InstallException implements Exception {
   final String message;
@@ -58,6 +58,8 @@ class InstallResult {
 
 class InstallService {
   InstallService({http.Client? client}) : _client = client ?? http.Client();
+
+  static const appVersion = _appVersion;
 
   final http.Client _client;
 

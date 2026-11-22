@@ -847,7 +847,7 @@ class _HeroPanel extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'v1.0.1',
+              'v${InstallService.appVersion}',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: Colors.white.withValues(alpha: 0.6),
               ),
