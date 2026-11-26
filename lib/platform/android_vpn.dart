@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_sing_box/flutter_sing_box.dart';
 import 'package:path/path.dart' as p;
 
@@ -20,11 +21,19 @@ class AndroidVpnException implements Exception {
   String toString() => message;
 }
 
+/// Обёртка над нативным плагином `flutter_sing_box` (Android / Windows).
+///
+/// Инициализация ленивая и повторяемая: на Android нативный метод `init`
+/// требует уже привязанную Activity, поэтому вызов повторяется, пока движок
+/// возвращает `NO_ACTIVITY` (т.е. пока не отрисован первый кадр).
 class AndroidVpnEngine {
   AndroidVpnEngine(this._logs);
 
   final LogService _logs;
   final FlutterSingBox _client = FlutterSingBox();
+
+  static const int _initAttempts = 15;
+  static const Duration _initRetryDelay = Duration(milliseconds: 400);
 
   bool _initialized = false;
   Future<void>? _initializing;
@@ -46,7 +55,23 @@ class AndroidVpnEngine {
 
   Future<void> _initialize() async {
     try {
-      await _client.init();
+      Object? lastError;
+      for (var attempt = 0; attempt < _initAttempts; attempt++) {
+        try {
+          await _client.init();
+          lastError = null;
+          break;
+        } catch (error) {
+          lastError = error;
+          if (!_isNoActivity(error)) rethrow;
+          await Future<void>.delayed(_initRetryDelay);
+        }
+      }
+      if (lastError != null) {
+        throw AndroidVpnException(
+          'Плагин VPN не смог подключиться к приложению: ${_describe(lastError)}',
+        );
+      }
       _stateSubscription = _client.proxyStateStream.listen(_handleState);
       _statusSubscription = _client.connectedStatusStream.listen((status) {
         onStatus?.call(status);
@@ -57,9 +82,10 @@ class AndroidVpnEngine {
         }
       });
       _initialized = true;
-    } catch (_) {
+    } catch (error) {
       _initializing = null;
-      rethrow;
+      if (error is AndroidVpnException) rethrow;
+      throw AndroidVpnException(_describe(error));
     }
   }
 
@@ -67,7 +93,6 @@ class AndroidVpnEngine {
     required Map<String, dynamic> config,
     required String name,
   }) async {
-    await init();
     final directory = await ProfileStorage.instance.getStorageDirectory();
     await directory.create(recursive: true);
     final file = File(p.join(directory.path, 'using_config.json'));
@@ -93,6 +118,8 @@ class AndroidVpnEngine {
     ProfileStorage.instance.setSelectedProfile(1);
     ProfileStorage.instance.setUsingConfig(directory.path);
 
+    await init();
+
     if (Platform.isWindows) {
       final installed = await _client.installService(
         serviceName: 'clash_sing_service',
@@ -112,12 +139,19 @@ class AndroidVpnEngine {
       await _client.startVpn();
     } catch (error) {
       _startCompleter = null;
-      throw AndroidVpnException(error.toString());
+      throw AndroidVpnException(_describe(error));
     }
+
+    // Статус может прийти раньше, чем завершится startVpn, —
+    // проверяем completer ещё раз, чтобы не ждать таймаута впустую.
+    if (completer.isCompleted) return completer.future;
     return completer.future.timeout(
-      const Duration(seconds: 20),
+      const Duration(seconds: 30),
       onTimeout: () {
-        throw const AndroidVpnException('VPN не запустился за 20 секунд');
+        _startCompleter = null;
+        throw const AndroidVpnException(
+          'VPN не запустился за 30 секунд. Проверьте журнал ядра.',
+        );
       },
     );
   }
@@ -125,9 +159,10 @@ class AndroidVpnEngine {
   Future<void> stop() async {
     if (!isSupported) return;
     try {
+      await init();
       await _client.stopVpn();
     } catch (error) {
-      _logs.warn('conn', 'Не удалось остановить VPN: $error');
+      _logs.warn('conn', 'Не удалось остановить VPN: ${_describe(error)}');
     }
   }
 
@@ -160,5 +195,19 @@ class AndroidVpnEngine {
     await _stateSubscription?.cancel();
     await _statusSubscription?.cancel();
     await _logSubscription?.cancel();
+  }
+
+  static bool _isNoActivity(Object error) {
+    if (error is PlatformException) return error.code == 'NO_ACTIVITY';
+    return error.toString().contains('NO_ACTIVITY');
+  }
+
+  static String _describe(Object error) {
+    if (error is PlatformException) {
+      return error.message?.isNotEmpty == true
+          ? error.message!
+          : '${error.code}: ${error.details ?? ''}';
+    }
+    return error.toString();
   }
 }

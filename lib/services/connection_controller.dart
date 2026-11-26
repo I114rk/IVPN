@@ -54,7 +54,8 @@ class ConnectionController extends ChangeNotifier {
        _android = androidVpn ?? AndroidVpnEngine(logs),
        _engineState = engine.state {
     _engineSubscription = _engine.states.listen(_onEngineState);
-    if (AndroidVpnEngine.isSupported) {
+    // Windows идёт через свой path (sing-box.exe), плагин — только Android.
+    if (_usesVpnPlugin) {
       _android.onStateChanged = _onAndroidState;
       _android.onStatus = _onAndroidStatus;
       _android.onLog = _onAndroidLog;
@@ -93,6 +94,9 @@ class ConnectionController extends ChangeNotifier {
   int get download => _download;
   String? get lastError => _lastError;
   bool get needsElevation => _needsElevation;
+
+  /// Плагин `flutter_sing_box` используется только на Android.
+  static bool get _usesVpnPlugin => Platform.isAndroid;
 
   List<LanClient> get lanClients {
     final clients = _lanClients.values.toList();
@@ -136,7 +140,7 @@ class ConnectionController extends ChangeNotifier {
       );
     }
 
-    if (AndroidVpnEngine.isSupported) {
+    if (_usesVpnPlugin) {
       await _connectAndroid(profile);
       return;
     }
@@ -295,7 +299,7 @@ class ConnectionController extends ChangeNotifier {
   Future<void> disconnect() async {
     _trafficTimer?.cancel();
     _trafficTimer = null;
-    if (AndroidVpnEngine.isSupported) {
+    if (_usesVpnPlugin) {
       await _android.stop();
     } else {
       try {
@@ -327,7 +331,7 @@ class ConnectionController extends ChangeNotifier {
     final config = SingboxConfigBuilder.build(
       profile: profile,
       settings: settings,
-      android: Platform.isAndroid,
+      android: true,
     );
 
     _connecting = true;
@@ -426,7 +430,7 @@ class ConnectionController extends ChangeNotifier {
     _trafficTimer?.cancel();
     _trafficTimer = null;
     _lanClients.clear();
-    if (AndroidVpnEngine.isSupported) {
+    if (_usesVpnPlugin) {
       await _android.stop();
       return;
     }

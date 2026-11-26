@@ -218,15 +218,27 @@ class SingboxConfigBuilder {
     AppSettings settings, {
     bool android = false,
   }) {
+    if (android) {
+      // Android: файловый дескриптор TUN выдаёт нативная VpnService,
+      // поэтому путь интерфейса и strict_route задаются платформой.
+      return {
+        'type': 'tun',
+        'tag': 'tun-in',
+        'address': ['172.19.0.1/30'],
+        'mtu': 9000,
+        'auto_route': true,
+        'stack': 'gvisor',
+      };
+    }
     return {
       'type': 'tun',
       'tag': 'tun-in',
-      if (!android) 'interface_name': 'IVPN',
+      'interface_name': 'IVPN',
       'address': ['172.19.0.1/30', 'fdfe:dcba:9876::1/126'],
       'mtu': 9000,
       'auto_route': true,
       'strict_route': true,
-      'stack': android ? 'gvisor' : settings.tunStack,
+      'stack': settings.tunStack,
     };
   }
 

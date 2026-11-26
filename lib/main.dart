@@ -57,17 +57,21 @@ Future<void> main() async {
   final settings = SettingsController(stateStore, device);
   await settings.init();
 
-  if (Platform.isAndroid &&
-      (settings.value.mode != ConnectionMode.tun ||
-          settings.value.engine != CoreEngine.singbox ||
-          settings.value.allowLan ||
-          settings.value.autoConnect)) {
-    await settings.patch(
-      mode: ConnectionMode.tun,
-      engine: CoreEngine.singbox,
-      allowLan: false,
-      autoConnect: false,
-    );
+  if (Platform.isAndroid) {
+    // Android работает только через нативный плагин: TUN, sing-box,
+    // без LAN-прокси и автоподключения.
+    final current = settings.value;
+    if (current.mode != ConnectionMode.tun ||
+        current.engine != CoreEngine.singbox ||
+        current.allowLan ||
+        current.autoConnect) {
+      await settings.patch(
+        mode: ConnectionMode.tun,
+        engine: CoreEngine.singbox,
+        allowLan: false,
+        autoConnect: false,
+      );
+    }
   }
 
   final hwid = HwidService(device);
